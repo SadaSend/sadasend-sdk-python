@@ -1,0 +1,73 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sadasend"
+version = "0.1.0"
+description = "The official Python SDK for SadaSend. Transactional email with unbypassable guardrails, zero runtime dependencies, and native agent safety."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "SadaSend", email = "support@sadasend.com" },
+]
+keywords = [
+  "sadasend",
+  "email",
+  "transactional-email",
+  "email-api",
+  "smtp",
+  "smtp-relay",
+  "ai-agents",
+  "agent-guardrails",
+  "mcp",
+  "model-context-protocol",
+  "deliverability",
+  "spf",
+  "dkim",
+  "dmarc",
+  "webhooks",
+  "idempotency",
+  "langchain",
+  "crewai",
+  "autogen",
+  "fastapi",
+  "flask",
+  "django",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Communications :: Email",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+# Deliberately empty: standard library only (urllib, hmac, hashlib, json).
+# Zero runtime dependencies guarantees zero supply-chain CVE vulnerabilities.
+dependencies = []
+
+[project.urls]
+Homepage = "https://sadasend.com"
+Documentation = "https://sadasend.com/docs"
+Repository = "https://github.com/SadaSend/sadasend-sdk-python"
+Issues = "https://github.com/SadaSend/sadasend-sdk-python/issues"
+Changelog = "https://github.com/SadaSend/sadasend-sdk-python/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sadasend"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/sadasend",
+  "/README.md",
+  "/LICENSE",
+]
