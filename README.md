@@ -4,7 +4,7 @@
 [![Python versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://pypi.org/project/sadasend/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/SadaSend/sadasend-sdk-python/blob/main/LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20(stdlib%20only)-success.svg)](https://pypi.org/project/sadasend/)
-[![Tests Passing](https://img.shields.io/badge/tests-60%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
+[![Tests Passing](https://img.shields.io/badge/tests-66%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
 [![Typing: Typed](https://img.shields.io/badge/typing-typed-blue.svg)](https://pypi.org/project/sadasend/)
 
 The official Python SDK for [SadaSend](https://sadasend.com) — high-throughput transactional email with unbypassable server-enforced guardrails designed for human software engineering teams and autonomous AI agents.
@@ -311,6 +311,64 @@ for day in vol["days"]:
     print(f"{day['date']}: {day['count']} sent")
 ```
 
+### 8. Deliverability Verification Shield & Pre-Send Validation
+
+Protect sender reputation and verify recipient deliverability in real time without burning sending quota:
+
+```python
+# 1. Standalone single email verification
+verification = sadasend.tools.verify(email="alex@example.com")
+print(f"Status: {verification['status']}, Score: {verification['score']}/100, Reason: {verification.get('reason')}")
+
+# 2. Batch deliverability verification
+batch_ver = sadasend.tools.verify_batch(emails=[
+    "valid@startup.io",
+    "bounced@disposable.org",
+    "invalid-syntax@bad",
+])
+print(f"Total: {batch_ver['total']}, Deliverable: {batch_ver['deliverable']}")
+
+# 3. Send-time deliverability shield: refuses undeliverable recipients with 422 before queueing
+result = sadasend.emails.send(
+    from_="alerts@yourdomain.com",
+    to="newuser@example.com",
+    subject="Welcome to our platform",
+    text="Your account is active.",
+    verify_before_send=True,  # Instant MX, disposable, and syntax verification
+    marketing=True,           # Injects RFC 8058 One-Click List-Unsubscribe headers
+)
+```
+
+### 9. Standardized UTM Campaign URL Normalization (`tools.utm`)
+
+Normalize and inject UTM campaign parameters into destination URLs on the fly:
+
+```python
+utm_result = sadasend.tools.utm(
+    url="https://yourdomain.com/pricing?ref=partner#enterprise",
+    source="newsletter",
+    medium="email",
+    campaign="q4_feature_launch",
+    term="transactional",
+    content="cta_button",
+)
+print("Normalized URL:", utm_result["url"])
+# Preserves query parameters and anchor (#enterprise)
+```
+
+### 10. Prepaid Credit Packs & Paddle Checkout (`billing.credits_checkout`)
+
+Initialize a Paddle checkout transaction for prepaid verification or sending credit packs:
+
+```python
+checkout = sadasend.billing.credits_checkout(
+    pack="25k",         # "5k", "25k", "100k", "500k" for verify; "10k", "50k", "100k" for send
+    type="verify",      # "verify" | "send"
+    return_url="https://yourdomain.com/dashboard/billing",
+)
+print(f"Transaction: {checkout['transactionId']}, URL: {checkout['checkoutUrl']}")
+```
+
 ---
 
 ## Cryptographic HMAC Webhook Verification
@@ -457,6 +515,14 @@ except RateLimitError as e:
 | `RateLimitError` | Key or account rate limit exceeded (HTTP 429) | **Yes** | `retry_after_seconds`, `is_account_throttle` |
 | `ServerError` | Transient 5xx upstream server error | **Yes** | `status`, `message` |
 | `ConnectionFailedError` | Network timeout, socket drop, or DNS failure | **Yes** | `cause`, `attempts` |
+| `UndeliverableRecipientError` | Pre-send verification failure (`verify_before_send=True`) | No | `recipient`, `reason`, `suggestion` |
+| `InvalidSubjectError` | Subject violates RFC 5322 length (> 998 chars) or forbidden control chars | No | `code`, `status`, `message` |
+| `InvalidDateError` | `scheduled_at` date is in past or beyond max 72-hour window | No | `code`, `status`, `message` |
+| `BatchSizeExceededError` | Batch send exceeds 100 emails limit | No | `code`, `status`, `message` |
+| `PlanTierInsufficientError` | Feature or limit requires upgrading plan | No | `code`, `status`, `message` |
+| `AnonymousLimitExceededError` | Free unauthenticated deliverability check limit reached (5/day) | No | `code`, `status`, `message` |
+| `InvitationAlreadyPendingError` | Team invitation already pending for recipient | No | `code`, `status`, `message` |
+| `InvalidPlanError` | Invalid plan or pack selected for checkout | No | `code`, `status`, `message` |
 
 ---
 

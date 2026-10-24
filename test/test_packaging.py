@@ -6,8 +6,8 @@ import sadasend
 
 class TestPackaging(unittest.TestCase):
     def test_version_matches(self):
-        self.assertEqual(sadasend.__version__, "0.1.0")
-        self.assertEqual(sadasend.VERSION, "0.1.0")
+        self.assertEqual(sadasend.__version__, "0.1.1")
+        self.assertEqual(sadasend.VERSION, "0.1.1")
 
     def test_all_exports_exist(self):
         for name in sadasend.__all__:
@@ -22,7 +22,7 @@ class TestPackaging(unittest.TestCase):
         self.assertTrue(py_typed.exists(), "PEP 561 marker 'sadasend/py.typed' is required for IDE/mypy support")
 
     def test_zero_runtime_dependencies(self):
-        pyproject_path = Path(sadasend.__file__).resolve().parent.parent / "pyproject.toml"
+        pyproject_path = Path(__file__).resolve().parent.parent / "pyproject.toml"
         content = pyproject_path.read_text(encoding="utf-8")
         self.assertIn("dependencies = []", content, "SDK must maintain zero runtime dependencies")
 

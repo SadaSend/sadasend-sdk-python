@@ -30,6 +30,13 @@ res = sadasend.emails.send(
     ],
     scheduled_at="2026-11-01T12:00:00Z", # Future ISO timestamp
     dry_run=True,                        # Zero-cost preflight validation
+    verify_before_send=True,             # Real-time sub-50ms MX/syntax/disposable verification before queuing
+    marketing=True,                      # Injects RFC 8058 one-click List-Unsubscribe headers
+    utm={                                # Standardized campaign tracking parameters
+        "source": "agent_billing",
+        "medium": "email",
+        "campaign": "q4_renewal",
+    },
     idempotency_key="order-1234",        # Custom domain idempotency key
     channel="sdk",                       # 'api' | 'sdk' | 'mcp' | 'smtp' | 'console'
     source="agent",                      # 'backend' | 'agent' | 'automation' | 'system'
@@ -161,6 +168,22 @@ tools_list = sadasend.tools.list()
 
 # Run deliverability check (SPF, DKIM, MX, DMARC)
 check_result = sadasend.tools.check(check="dkim", subject="mycompany.com", selector="sadasend")
+
+# Real-time recipient deliverability verification (sub-50ms)
+verified = sadasend.tools.verify(email="user@example.com")
+# verified: {"email": "...", "status": "deliverable", "score": 98, "verdict": "pass"}
+
+# High-throughput batch email deliverability verification
+batch_verified = sadasend.tools.verify_batch(emails=["alex@example.com", "sam@example.com"])
+# batch_verified: {"ok": True, "total": 2, "deliverable": 2, ...}
+
+# Normalize and inject campaign UTM tracking parameters into URLs
+tagged_url = sadasend.tools.utm(
+    url="https://example.com/checkout",
+    source="agent_claude",
+    medium="email",
+    campaign="onboarding",
+)
 ```
 
 ---

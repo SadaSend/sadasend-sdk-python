@@ -57,7 +57,22 @@ SadaSend is engineered to prevent autonomous AI agents from hallucinating recipi
 
 ---
 
-## 4. Rate Limiting (`RateLimitError`)
+## 4. Deliverability Guardrail Refusal (`UndeliverableRecipientError`)
+
+- **HTTP Status:** `422 Unprocessable Entity`
+- **Error Code:** `undeliverable_recipient`
+- **Why It Happens:** Triggered when `verify_before_send=True` is passed to `client.emails.send(...)` and the recipient fails real-time MX records validation, syntax rules, or is identified as a disposable burner mailbox. No email credits or monthly quotas are consumed.
+- **Payload Properties:**
+  - `err.recipient`: The undeliverable recipient email.
+  - `err.reason`: Deliverability failure reason (e.g. `mx_missing`, `disposable`, `syntax_invalid`).
+  - `err.suggestion`: Suggested typo correction if applicable (e.g. `user@gmail.com` when user entered `user@gmaill.com`).
+- **Agent Self-Correction Strategy:**
+  1. Inspect `err.suggestion`. If available, ask the user or self-correct to the suggested domain.
+  2. If uncorrectable, abort dispatch to prevent bounce rate degradation.
+
+---
+
+## 5. Rate Limiting (`RateLimitError`)
 
 - **HTTP Status:** `429 Too Many Requests`
 - **Error Code:** `rate_limit_exceeded` or `account_throttled`
@@ -70,7 +85,7 @@ SadaSend is engineered to prevent autonomous AI agents from hallucinating recipi
 
 ---
 
-## 5. Scope Restrictions (`InsufficientScopeError`)
+## 6. Scope Restrictions (`InsufficientScopeError`)
 
 - **HTTP Status:** `403 Forbidden`
 - **Error Code:** `insufficient_scope`
@@ -80,7 +95,7 @@ SadaSend is engineered to prevent autonomous AI agents from hallucinating recipi
 
 ---
 
-## 6. Idempotency Key Reused (`IdempotencyKeyReusedError`)
+## 7. Idempotency Key Reused (`IdempotencyKeyReusedError`)
 
 - **HTTP Status:** `409 Conflict`
 - **Error Code:** `idempotency_key_reused`
@@ -90,7 +105,7 @@ SadaSend is engineered to prevent autonomous AI agents from hallucinating recipi
 
 ---
 
-## 7. Network Disconnects (`ConnectionFailedError`)
+## 8. Network Disconnects (`ConnectionFailedError`)
 
 - **Type:** Exception (`ConnectionFailedError`)
 - **Why It Happens:** Complete network outage, socket timeout, or dropped TLS handshake after exhausting all configured retries.

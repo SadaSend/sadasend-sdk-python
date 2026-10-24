@@ -5,6 +5,25 @@ All notable changes to the `sadasend` Python SDK will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-24
+
+### Added
+- **Deliverability Shield & Verification**:
+  - Added `verify_before_send` parameter to `client.emails.send(...)` and `client.emails.batch(...)` for real-time MX/syntax/disposable verification before queuing.
+  - Added `client.tools.verify(email=...)` and `client.tools.verify_batch(emails=[...])` methods (with `verifyBatch` camelCase alias).
+- **RFC 8058 One-Click Header**:
+  - Added `marketing` parameter to `client.emails.send(...)` and `client.emails.batch(...)` to automatically inject `List-Unsubscribe` and `List-Unsubscribe-Post` headers.
+- **Prepaid Credit Packs & Paddle Checkout**:
+  - Added `client.billing.credits_checkout(pack=..., type=..., return_url=...)` method for Paddle credit packs checkout initialization.
+- **Typed Guardrail Exception Classes**:
+  - Added dedicated typed exception subclasses: `UndeliverableRecipientError`, `InvalidSubjectError`, `InvalidDateError`, `BatchSizeExceededError`, `PlanTierInsufficientError`, `AnonymousLimitExceededError`, `InvitationAlreadyPendingError`, and `InvalidPlanError`.
+- **UTM Campaign Tracking & Parameter Normalization**:
+  - Added native `utm` dictionary support to `client.emails.send(...)` (`source`, `medium`, `campaign`, `term`, `content`, `override_existing`).
+  - Added `client.tools.utm(...)` and `client.tools.build_utm(...)` methods (`POST /tools/utm`) to normalize, validate, and inject campaign parameters into target URLs.
+- **Convenience Aliases & Parity with TypeScript SDK**:
+  - Added `client.keys.approvals()` pointing to `client.keys_approvals.list()`.
+  - Added `client.support.tickets()` and `client.support.ticket(id)`.
+
 ## [0.1.0] - 2026-10-10
 
 ### Added

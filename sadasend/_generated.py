@@ -10,7 +10,7 @@ verifier are hand-written in _client.py, errors.py and webhooks.py — a generat
 write "obey Retry-After" or "never retry a guardrail refusal", and those are the whole
 point of the client.
 
-Operations reachable with an API key: 30. Cookie-session-only operations excluded: 39 —
+Operations reachable with an API key: 33. Cookie-session-only operations excluded: 46 —
 the dashboard's own surface, where a method here would return 401 on every call.
 """
 
@@ -240,7 +240,7 @@ class Emails:
         """
         return self._client._request("POST", f"/emails/{id_}/resend", idempotency_key=idempotency_key)
 
-    def send(self, from_: str, to: Union[str, List[str]], subject: Optional[str] = None, cc: Optional[Union[str, List[str]]] = None, bcc: Optional[Union[str, List[str]]] = None, reply_to: Optional[Union[str, List[str]]] = None, tags: Optional[List[str]] = None, html: Optional[str] = None, text: Optional[str] = None, headers: Optional[Dict[str, Any]] = None, template: Optional[str] = None, variables: Optional[Dict[str, Any]] = None, attachments: Optional[List[Dict[str, Any]]] = None, scheduled_at: Optional[str] = None, dry_run: Optional[bool] = None, channel: Optional[str] = None, source: Optional[str] = None, agent_name: Optional[str] = None, idempotency_key: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
+    def send(self, from_: str, to: Union[str, List[str]], subject: Optional[str] = None, cc: Optional[Union[str, List[str]]] = None, bcc: Optional[Union[str, List[str]]] = None, reply_to: Optional[Union[str, List[str]]] = None, tags: Optional[List[str]] = None, html: Optional[str] = None, text: Optional[str] = None, headers: Optional[Dict[str, Any]] = None, template: Optional[str] = None, variables: Optional[Dict[str, Any]] = None, attachments: Optional[List[Dict[str, Any]]] = None, scheduled_at: Optional[str] = None, dry_run: Optional[bool] = None, channel: Optional[str] = None, source: Optional[str] = None, agent_name: Optional[str] = None, utm: Optional[Dict[str, Any]] = None, verify_before_send: Optional[bool] = None, marketing: Optional[bool] = None, idempotency_key: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
         """
         Send an email
 
@@ -271,6 +271,9 @@ class Emails:
             channel: Channel provenance. One of: api, sdk, mcp, smtp, console. Anything else is refused with 400 invalid_channel.
             source: Source provenance. One of: backend, agent, automation, system. Anything else is refused with 400 invalid_source.
             agent_name: Attributed agent name, up to 128 characters — longer is refused with 400 invalid_agent_name, not truncated. Also accepted as agentName.
+            utm: Optional.
+            verify_before_send: Real-time recipient deliverability verification before enqueue. Refuses undeliverable recipients with 422 undeliverable_recipient and debits zero quota. Also accepted as verifyBeforeSend.
+            marketing: RFC 8058 One-Click List-Unsubscribe Header. When true, automatically injects List-Unsubscribe and List-Unsubscribe-Post headers and routes to bulk sender pools.
         """
         body: Dict[str, Any] = dict(extra)
         if from_ is not None:
@@ -309,6 +312,12 @@ class Emails:
             body["source"] = source
         if agent_name is not None:
             body["agent_name"] = agent_name
+        if utm is not None:
+            body["utm"] = utm
+        if verify_before_send is not None:
+            body["verify_before_send"] = verify_before_send
+        if marketing is not None:
+            body["marketing"] = marketing
         return self._client._request("POST", "/emails", body=body, idempotency_key=idempotency_key)
 
 
@@ -476,7 +485,7 @@ class Templates:
 
 
 class Tools:
-    """`client.tools` — 2 operations."""
+    """`client.tools` — 5 operations."""
 
     def __init__(self, client: "SadaSend") -> None:
         self._client = client
@@ -504,6 +513,76 @@ class Tools:
         Which free checks this deployment knows about
         """
         return self._client._request("GET", "/tools")
+
+    def utm(self, url: str, source: Optional[str] = None, medium: Optional[str] = None, campaign: Optional[str] = None, term: Optional[str] = None, content: Optional[str] = None, override_existing: Optional[bool] = None, idempotency_key: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
+        """
+        Build and normalize standardized UTM campaign URLs
+
+        Injects or merges UTM tracking parameters into target URLs while preserving
+        existing parameters, ports, paths, and anchors. No authentication required.
+
+        Args:
+            url: The destination web URL to tag.
+            source: The campaign source (e.g. newsletter, agent_claude).
+            medium: The marketing medium (e.g. email, cpc).
+            campaign: The specific campaign name.
+            term: The search term or trigger keyword.
+            content: The specific link or CTA identifier.
+            override_existing: Whether to override existing UTM parameters if already present.
+        """
+        body: Dict[str, Any] = dict(extra)
+        if url is not None:
+            body["url"] = url
+        if source is not None:
+            body["source"] = source
+        if medium is not None:
+            body["medium"] = medium
+        if campaign is not None:
+            body["campaign"] = campaign
+        if term is not None:
+            body["term"] = term
+        if content is not None:
+            body["content"] = content
+        if override_existing is not None:
+            body["override_existing"] = override_existing
+        return self._client._request("POST", "/tools/utm", body=body, idempotency_key=idempotency_key)
+
+    def verify(self, email: Optional[str] = None, subject: Optional[str] = None, idempotency_key: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
+        """
+        Verify recipient email deliverability in real-time
+
+        Sub-50ms recipient verification engine. Validates RFC 5322 syntax, queries live
+        DNS MX servers, identifies disposable burner mailboxes, detects role
+        distribution addresses, and suggests typo corrections (e.g. gmaill.com ->
+        gmail.com). Unauthenticated guest requests are limited to 5 checks/day;
+        authenticated requests consume verification credits.
+
+        Args:
+            email: The recipient email address to verify (e.g. "alex@example.com"). Also accepted as `subject`.
+            subject: Alternative alias for `email`.
+        """
+        body: Dict[str, Any] = dict(extra)
+        if email is not None:
+            body["email"] = email
+        if subject is not None:
+            body["subject"] = subject
+        return self._client._request("POST", "/tools/verify", body=body, idempotency_key=idempotency_key)
+
+    def verify_batch(self, emails: List[str], idempotency_key: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
+        """
+        Batch verify recipient email deliverability
+
+        High-throughput bulk email verification engine. Gated by plan tier: Starter (up
+        to 100/batch), Pro (up to 1,000/batch), Scale (up to 10,000/batch). Consumes
+        verification quota/credits per email.
+
+        Args:
+            emails: Required.
+        """
+        body: Dict[str, Any] = dict(extra)
+        if emails is not None:
+            body["emails"] = emails
+        return self._client._request("POST", "/tools/verify/batch", body=body, idempotency_key=idempotency_key)
 
 
 class Webhooks:

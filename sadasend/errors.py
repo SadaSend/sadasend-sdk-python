@@ -29,6 +29,14 @@ __all__ = [
     "RecipientSuppressedError",
     "IdempotencyKeyReusedError",
     "IdempotencyInProgressError",
+    "UndeliverableRecipientError",
+    "InvalidSubjectError",
+    "InvalidDateError",
+    "BatchSizeExceededError",
+    "PlanTierInsufficientError",
+    "AnonymousLimitExceededError",
+    "InvitationAlreadyPendingError",
+    "InvalidPlanError",
     "RateLimitError",
     "ServerError",
     "ConnectionFailedError",
@@ -123,6 +131,54 @@ class RecipientSuppressedError(SadaSendError):
         return self.body.get("reason")
 
 
+class UndeliverableRecipientError(SadaSendError):
+    """Real-time deliverability guardrail refusal (`verify_before_send=True`).
+
+    The recipient failed syntax, DNS MX lookup, or was identified as a disposable/dead address.
+    No email credits or monthly quota are debited.
+    """
+
+    @property
+    def recipient(self) -> Optional[str]:
+        return self.body.get("recipient")
+
+    @property
+    def reason(self) -> Optional[str]:
+        return self.body.get("reason")
+
+    @property
+    def suggestion(self) -> Optional[str]:
+        return self.body.get("suggestion")
+
+
+class InvalidSubjectError(SadaSendError):
+    """The subject violates RFC 5322 line limits (> 998 characters) or contains forbidden control characters."""
+
+
+class InvalidDateError(SadaSendError):
+    """The scheduled_at date is invalid, in the past, or beyond the maximum 72-hour scheduling window."""
+
+
+class BatchSizeExceededError(SadaSendError):
+    """The batch request exceeded the maximum allowed items (100)."""
+
+
+class PlanTierInsufficientError(SadaSendError):
+    """The requested feature (e.g. batch size or rate limit) requires an upgraded plan tier."""
+
+
+class AnonymousLimitExceededError(SadaSendError):
+    """The unauthenticated guest rate limit for email verification (5/day) has been exceeded."""
+
+
+class InvitationAlreadyPendingError(SadaSendError):
+    """A pending team invitation already exists for this email address."""
+
+
+class InvalidPlanError(SadaSendError):
+    """The selected plan cannot be purchased via this checkout route."""
+
+
 class IdempotencyKeyReusedError(SadaSendError):
     """The same key with a different body. The first request stands."""
 
@@ -204,6 +260,15 @@ _BY_CODE = {
     "recipient_suppressed": RecipientSuppressedError,
     "idempotency_key_reused": IdempotencyKeyReusedError,
     "idempotency_key_in_progress": IdempotencyInProgressError,
+    "undeliverable_recipient": UndeliverableRecipientError,
+    "invalid_subject": InvalidSubjectError,
+    "invalid_date": InvalidDateError,
+    "batch_size_exceeded": BatchSizeExceededError,
+    "plan_tier_insufficient": PlanTierInsufficientError,
+    "anonymous_limit_exceeded": AnonymousLimitExceededError,
+    "invitation_already_pending": InvitationAlreadyPendingError,
+    "invalid_plan": InvalidPlanError,
+    "free_plan_no_checkout": InvalidPlanError,
 }
 
 
@@ -218,14 +283,13 @@ def to_error(
     if not isinstance(message, str):
         message = f"The API returned {status} with no error message."
 
+    cls = _BY_CODE.get(code)
+    if cls:
+        return cls(code, status, message, body)
     if status == 429:
         return RateLimitError(code, status, message, body, retry_after_seconds)
     if status >= 500:
         return ServerError(code, status, message, body)
-
-    cls = _BY_CODE.get(code)
-    if cls:
-        return cls(code, status, message, body)
     if status == 401:
         return AuthenticationError(code, status, message, body)
     return SadaSendError(code, status, message, body)

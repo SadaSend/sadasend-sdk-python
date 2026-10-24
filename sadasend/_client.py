@@ -46,7 +46,7 @@ from .errors import ConnectionFailedError, SadaSendError, is_retryable, to_error
 
 __all__ = ["SadaSend", "RetryPolicy", "VERSION", "DEFAULT_BASE_URL"]
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 DEFAULT_BASE_URL = "https://api.sadasend.com"
 
 
@@ -108,6 +108,42 @@ class RetryPolicy:
         return (draw() * backoff) / 1000.0
 
 
+class Billing:
+    """`client.billing` — Paddle credit pack checkouts."""
+
+    def __init__(self, client: "SadaSend") -> None:
+        self._client = client
+
+    def credits_checkout(
+        self,
+        pack: str,
+        type: str = "verify",
+        return_url: Optional[str] = None,
+        idempotency_key: Optional[str] = None,
+        **extra: Any,
+    ) -> Dict[str, Any]:
+        """Initialize a Paddle checkout transaction for prepaid verification or sending credit packs."""
+        body: Dict[str, Any] = dict(extra)
+        body["pack"] = pack
+        body["type"] = type
+        if return_url is not None:
+            body["returnUrl"] = return_url
+        return self._client._request("POST", "/billing/credits/checkout", body=body, idempotency_key=idempotency_key)
+
+
+class Support:
+    """Convenience alias for support tickets matching TypeScript SDK."""
+
+    def __init__(self, resource: Any) -> None:
+        self._resource = resource
+
+    def tickets(self, **kwargs: Any) -> Dict[str, Any]:
+        return self._resource.list(**kwargs)
+
+    def ticket(self, id_: str) -> Dict[str, Any]:
+        return self._resource.get(id_)
+
+
 class SadaSend:
     """The SadaSend client.
 
@@ -127,10 +163,12 @@ class SadaSend:
     keys: Keys
     keys_approvals: KeysApprovals
     support_tickets: SupportTickets
+    support: Support
     suppressions: Suppressions
     team: Team
     templates: Templates
     tools: Tools
+    billing: Billing
     webhooks: WebhooksResource
 
     def __init__(
@@ -163,6 +201,14 @@ class SadaSend:
 
         for attribute, resource_cls in RESOURCES.items():
             setattr(self, attribute, resource_cls(self))
+
+        self.billing = Billing(self)
+        self.support = Support(self.support_tickets)
+        if hasattr(self, "keys"):
+            setattr(self.keys, "approvals", lambda: self.keys_approvals.list())
+        if hasattr(self, "tools"):
+            setattr(self.tools, "build_utm", getattr(self.tools, "utm", None))
+            setattr(self.tools, "verifyBatch", getattr(self.tools, "verify_batch", None))
 
     # ------------------------------------------------------------ transport
 
@@ -288,12 +334,21 @@ def _normalise(body: Any) -> Any:
         return body
     if isinstance(body.get("to"), str):
         body["to"] = [body["to"]]
+    if "verifyBeforeSend" in body and "verify_before_send" not in body:
+        body["verify_before_send"] = body.pop("verifyBeforeSend")
+    if "agentName" in body and "agent_name" not in body:
+        body["agent_name"] = body.pop("agentName")
     for key in ("messages", "approvals", "emails", "results", "items"):
         rows = body.get(key)
         if isinstance(rows, list):
             for row in rows:
-                if isinstance(row, dict) and isinstance(row.get("to"), str):
-                    row["to"] = [row["to"]]
+                if isinstance(row, dict):
+                    if isinstance(row.get("to"), str):
+                        row["to"] = [row["to"]]
+                    if "verifyBeforeSend" in row and "verify_before_send" not in row:
+                        row["verify_before_send"] = row.pop("verifyBeforeSend")
+                    if "agentName" in row and "agent_name" not in row:
+                        row["agent_name"] = row.pop("agentName")
     return body
 
 

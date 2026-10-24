@@ -340,5 +340,52 @@ event = parse_webhook(webhook_secret, webhook_payload, signature_header)
 if event:
     print(f"Parsed Webhook Event: type = {event.get('type')}, id = {event.get('id')}")
 
+# ---------------------------------------------------------------------------
+# 12. Real-Time Deliverability Verification & Shield
+# ---------------------------------------------------------------------------
+print("\n--- 12. Real-Time Deliverability Verification ---")
+try:
+    verify_res = sadasend.tools.verify(email=TEST_RECIPIENT)
+    print(f"Verified recipient {verify_res.get('email')}: status = {verify_res.get('status')}, score = {verify_res.get('score')}/100")
+except SadaSendError as err:
+    print(f"Deliverability verification skipped or throttled: {err}")
+
+try:
+    batch_ver = sadasend.tools.verify_batch(emails=["test1@example.com", "test2@example.com"])
+    print(f"Batch verification: {batch_ver.get('deliverable', 0)} deliverable out of {batch_ver.get('total', 0)}")
+except SadaSendError as err:
+    print(f"Batch deliverability verification: {err}")
+
+# ---------------------------------------------------------------------------
+# 13. Standardized UTM Campaign URL Tagging
+# ---------------------------------------------------------------------------
+print("\n--- 13. Standardized UTM Campaign URL Builder ---")
+try:
+    utm_res = sadasend.tools.utm(
+        url="https://sadasend.com/docs?ref=partner#pricing",
+        source="product_newsletter",
+        medium="email",
+        campaign="q4_enterprise",
+        term="transactional_sdk",
+        content="hero_cta",
+    )
+    print(f"Tagged URL: {utm_res.get('url')}")
+except SadaSendError as err:
+    print(f"UTM URL builder: {err}")
+
+# ---------------------------------------------------------------------------
+# 14. Prepaid Credit Pack Checkout
+# ---------------------------------------------------------------------------
+print("\n--- 14. Prepaid Credit Pack Checkout ---")
+try:
+    checkout = sadasend.billing.credits_checkout(
+        type="verify",
+        pack="25k",
+        return_url="https://app.sadasend.com/billing",
+    )
+    print(f"Initialized Paddle Checkout: {checkout.get('checkoutUrl')} (Transaction ID: {checkout.get('transactionId')})")
+except SadaSendError as err:
+    print(f"Prepaid credit checkout: {err}")
+
 print("\n=== SadaSend Python SDK Demo Completed Successfully ===\n")
 
