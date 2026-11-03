@@ -29,14 +29,27 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 if TYPE_CHECKING:
     from ._generated import (
         Account,
+        Arbiter,
+        ArbiterRecipients,
+        ArbiterTickets,
+        Dmarc,
+        DmarcDomains,
+        DmarcReports,
         Domains,
         Emails,
+        Inbound,
+        InboundMessages,
+        InboundRoutes,
+        Inboxes,
+        Integrations,
         Keys,
         KeysApprovals,
         SupportTickets,
         Suppressions,
         Team,
         Templates,
+        Testing,
+        TestingInboxes,
         Tools,
         Webhooks as WebhooksResource,
     )
@@ -46,7 +59,7 @@ from .errors import ConnectionFailedError, SadaSendError, is_retryable, to_error
 
 __all__ = ["SadaSend", "RetryPolicy", "VERSION", "DEFAULT_BASE_URL"]
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 DEFAULT_BASE_URL = "https://api.sadasend.com"
 
 
@@ -108,29 +121,6 @@ class RetryPolicy:
         return (draw() * backoff) / 1000.0
 
 
-class Billing:
-    """`client.billing` — Paddle credit pack checkouts."""
-
-    def __init__(self, client: "SadaSend") -> None:
-        self._client = client
-
-    def credits_checkout(
-        self,
-        pack: str,
-        type: str = "verify",
-        return_url: Optional[str] = None,
-        idempotency_key: Optional[str] = None,
-        **extra: Any,
-    ) -> Dict[str, Any]:
-        """Initialize a Paddle checkout transaction for prepaid verification or sending credit packs."""
-        body: Dict[str, Any] = dict(extra)
-        body["pack"] = pack
-        body["type"] = type
-        if return_url is not None:
-            body["returnUrl"] = return_url
-        return self._client._request("POST", "/billing/credits/checkout", body=body, idempotency_key=idempotency_key)
-
-
 class Support:
     """Convenience alias for support tickets matching TypeScript SDK."""
 
@@ -158,17 +148,29 @@ class SadaSend:
     """
 
     account: Account
+    arbiter: Arbiter
+    arbiter_recipients: ArbiterRecipients
+    arbiter_tickets: ArbiterTickets
+    dmarc: Dmarc
+    dmarc_domains: DmarcDomains
+    dmarc_reports: DmarcReports
     domains: Domains
     emails: Emails
+    inbound: Inbound
+    inbound_messages: InboundMessages
+    inbound_routes: InboundRoutes
+    inboxes: Inboxes
+    integrations: Integrations
     keys: Keys
     keys_approvals: KeysApprovals
-    support_tickets: SupportTickets
     support: Support
+    support_tickets: SupportTickets
     suppressions: Suppressions
     team: Team
     templates: Templates
+    testing: Testing
+    testing_inboxes: TestingInboxes
     tools: Tools
-    billing: Billing
     webhooks: WebhooksResource
 
     def __init__(
@@ -202,13 +204,36 @@ class SadaSend:
         for attribute, resource_cls in RESOURCES.items():
             setattr(self, attribute, resource_cls(self))
 
-        self.billing = Billing(self)
         self.support = Support(self.support_tickets)
         if hasattr(self, "keys"):
             setattr(self.keys, "approvals", lambda: self.keys_approvals.list())
         if hasattr(self, "tools"):
             setattr(self.tools, "build_utm", getattr(self.tools, "utm", None))
             setattr(self.tools, "verifyBatch", getattr(self.tools, "verify_batch", None))
+        if hasattr(self, "inboxes"):
+            setattr(self.inboxes, "create", getattr(self.inboxes, "ephemeral", None))
+            setattr(self.inboxes, "create_ephemeral", getattr(self.inboxes, "ephemeral", None))
+        if hasattr(self, "testing"):
+            setattr(self.testing, "waitForCode", getattr(self.testing, "wait_for_code", None))
+            if hasattr(self, "testing_inboxes"):
+                setattr(self.testing, "inboxes", self.testing_inboxes)
+        if hasattr(self, "inbound"):
+            if hasattr(self, "inbound_routes"):
+                setattr(self.inbound, "routes", self.inbound_routes)
+            if hasattr(self, "inbound_messages"):
+                setattr(self.inbound, "messages", self.inbound_messages)
+        if hasattr(self, "dmarc"):
+            if hasattr(self, "dmarc_reports"):
+                setattr(self.dmarc, "reports", self.dmarc_reports)
+            if hasattr(self, "dmarc_domains"):
+                setattr(self.dmarc, "summary", getattr(self.dmarc_domains, "summary", None))
+        if hasattr(self, "arbiter"):
+            if hasattr(self, "arbiter_recipients"):
+                setattr(self.arbiter, "cooldowns", self.arbiter_recipients)
+                setattr(self.arbiter_recipients, "set", getattr(self.arbiter_recipients, "set_cooldown", None))
+                setattr(self.arbiter_recipients, "clear", getattr(self.arbiter_recipients, "clear_cooldown", None))
+            if hasattr(self, "arbiter_tickets"):
+                setattr(self.arbiter, "tickets", self.arbiter_tickets)
 
     # ------------------------------------------------------------ transport
 
@@ -247,6 +272,19 @@ class SadaSend:
                 request_headers["x-sadasend-source"] = str(body["source"])
             if body.get("channel"):
                 request_headers["x-sadasend-channel"] = str(body["channel"])
+            if body.get("priority"):
+                request_headers["x-sadasend-priority"] = str(body["priority"])
+
+            prov = body.get("provenance")
+            if isinstance(prov, dict):
+                if prov.get("agent_name"):
+                    request_headers["x-sadasend-agent"] = str(prov["agent_name"])
+                if prov.get("source"):
+                    request_headers["x-sadasend-source"] = str(prov["source"])
+                if prov.get("channel"):
+                    request_headers["x-sadasend-channel"] = str(prov["channel"])
+                if prov.get("priority"):
+                    request_headers["x-sadasend-priority"] = str(prov["priority"])
 
         if headers:
             for k, v in headers.items():

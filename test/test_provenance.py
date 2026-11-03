@@ -84,6 +84,50 @@ class TestProvenance(unittest.TestCase):
         self.assertEqual(headers["x-sadasend-source"], "agent")
         self.assertEqual(headers["x-sadasend-agent"], "claude-code")
 
+    def test_priority_header_stamping(self):
+        opener, calls = make_mock_opener([
+            (202, {"id": "msg_p0", "status": "queued"}, {}),
+        ])
+        client = SadaSend("sada_live_sk_test", opener=opener)
+
+        res = client.emails.send(
+            from_="auth@acme.com",
+            to="user@example.com",
+            subject="Security Alert",
+            text="Verify your login",
+            priority="auth",
+        )
+        self.assertEqual(res["id"], "msg_p0")
+        self.assertEqual(calls[0]["headers"]["x-sadasend-priority"], "auth")
+        self.assertEqual(calls[0]["body"]["priority"], "auth")
+
+    def test_provenance_dictionary_support(self):
+        opener, calls = make_mock_opener([
+            (202, {"id": "msg_prov", "status": "queued"}, {}),
+        ])
+        client = SadaSend("sada_live_sk_test", opener=opener)
+
+        res = client.emails.send(
+            from_="bot@acme.com",
+            to="user@example.com",
+            subject="Weekly Sync",
+            text="Automated sync",
+            provenance={
+                "channel": "sdk",
+                "source": "automation",
+                "agent_name": "sync-bot",
+                "priority": "billing",
+            },
+        )
+        self.assertEqual(res["id"], "msg_prov")
+        self.assertEqual(len(calls), 1)
+        req = calls[0]
+        self.assertEqual(req["body"]["provenance"]["channel"], "sdk")
+        self.assertEqual(req["headers"]["x-sadasend-channel"], "sdk")
+        self.assertEqual(req["headers"]["x-sadasend-source"], "automation")
+        self.assertEqual(req["headers"]["x-sadasend-agent"], "sync-bot")
+        self.assertEqual(req["headers"]["x-sadasend-priority"], "billing")
+
 
 if __name__ == "__main__":
     unittest.main()

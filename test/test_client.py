@@ -296,6 +296,53 @@ class TestClient(unittest.TestCase):
         self.assertEqual(_normalise(None), None)
         self.assertEqual(_normalise("string"), "string")
 
+    def test_normalise_camel_case_fields(self):
+        from sadasend._client import _normalise
+        out = _normalise({
+            "verifyBeforeSend": True,
+            "agentName": "agent-smith",
+            "messages": [
+                {"id": "m1", "verifyBeforeSend": False, "agentName": "worker-1"}
+            ]
+        })
+        self.assertTrue(out["verify_before_send"])
+        self.assertEqual(out["agent_name"], "agent-smith")
+        self.assertNotIn("verifyBeforeSend", out)
+        self.assertNotIn("agentName", out)
+        self.assertFalse(out["messages"][0]["verify_before_send"])
+        self.assertEqual(out["messages"][0]["agent_name"], "worker-1")
+
+    def test_parse_various_inputs(self):
+        from sadasend._client import _parse
+        # String input
+        self.assertEqual(_parse('{"ok": true}'), {"ok": True})
+        # Non-bytes non-string input
+        self.assertEqual(_parse(None), {"error": "invalid_response", "message": "The API returned an empty body."})
+        # Non-dict JSON value
+        self.assertEqual(_parse(b'"just a string"'), {"value": "just a string"})
+
+    def test_custom_request_headers_lowercased_and_filtered(self):
+        opener, calls = make_mock_opener([
+            (200, {"ok": True}, {}),
+        ])
+        client = SadaSend("test_key", opener=opener)
+        client._request("GET", "/account", headers={"X-Custom-Trace": "trace-123", "X-Empty": None})
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["headers"]["x-custom-trace"], "trace-123")
+        self.assertNotIn("x-empty", calls[0]["headers"])
+
+    def test_excessive_retry_after_in_attempt_loop_raises_immediately(self):
+        # When Retry-After is 3600s, delay_for returns None and client raises without sleeping
+        opener, calls = make_mock_opener([
+            (429, {"error": "account_throttled", "message": "Account throttled"}, {"retry-after": "3600"}),
+        ])
+        retry = RetryPolicy(max_retries=3, max_retry_after_ms=60000)
+        client = SadaSend("test_key", opener=opener, retry=retry)
+        with self.assertRaises(RateLimitError) as ctx:
+            client.account.get()
+        self.assertEqual(ctx.exception.retry_after_seconds, 3600.0)
+        self.assertEqual(len(calls), 1)  # Stopped immediately without retrying
+
 
 if __name__ == "__main__":
     unittest.main()

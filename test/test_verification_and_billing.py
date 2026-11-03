@@ -93,22 +93,61 @@ class TestVerificationAndGuardrails(unittest.TestCase):
         utm_res = client.tools.build_utm(url="https://sadasend.com", source="newsletter")
         self.assertIn("utm_source=newsletter", utm_res["url"])
 
-    def test_billing_credits_checkout(self):
+    def test_convenience_nested_resource_aliases(self):
         opener, calls = make_mock_opener([
-            (200, {
-                "transactionId": "txn_123",
-                "checkoutUrl": "https://buy.paddle.com/txn_123",
-                "priceId": "pri_123",
-            }, {}),
+            (200, {"inbox": {"id": "inb_nested"}}, {}),
+            (200, {"code": "777888"}, {}),
+            (200, {"code": "111222"}, {}),
+            (200, {"routes": []}, {}),
+            (200, {"messages": []}, {}),
+            (200, {"reports": []}, {}),
+            (200, {"domain": "corp.com", "dkimAlignmentPct": 100}, {}),
+            (200, {"cooldown": True}, {}),
+            (200, {"registered": True}, {}),
         ])
         client = SadaSend(api_key="sada_live_1234567890abcdef12345678", opener=opener)
 
-        res = client.billing.credits_checkout(pack="25k", type="verify", return_url="https://app.sadasend.com/verify")
-        self.assertEqual(res["transactionId"], "txn_123")
-        self.assertEqual(calls[0]["method"], "POST")
-        self.assertEqual(calls[0]["url"], "https://api.sadasend.com/billing/credits/checkout")
-        self.assertEqual(calls[0]["body"]["pack"], "25k")
-        self.assertEqual(calls[0]["body"]["type"], "verify")
+        # inboxes.create alias to inboxes.ephemeral
+        inb = client.inboxes.create(alias="agent-alias")
+        self.assertEqual(inb["inbox"]["id"], "inb_nested")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/ephemeral")
+
+        # testing.waitForCode alias
+        wfc = client.testing.waitForCode(to="t@corp.com")
+        self.assertEqual(wfc["code"], "777888")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/wait-for-code")
+
+        # testing.inboxes.code
+        tc = client.testing.inboxes.code("t@corp.com")
+        self.assertEqual(tc["code"], "111222")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/inboxes/t@corp.com/code")
+
+        # inbound.routes.list & inbound.messages.list
+        rts = client.inbound.routes.list()
+        self.assertEqual(rts["routes"], [])
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/routes")
+
+        msgs = client.inbound.messages.list()
+        self.assertEqual(msgs["messages"], [])
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/messages")
+
+        # dmarc.reports.list & dmarc.summary
+        reps = client.dmarc.reports.list()
+        self.assertEqual(reps["reports"], [])
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/dmarc/reports")
+
+        summ = client.dmarc.summary("corp.com")
+        self.assertEqual(summ["domain"], "corp.com")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/dmarc/domains/corp.com/summary")
+
+        # arbiter.cooldowns.set & arbiter.tickets.create
+        cd = client.arbiter.cooldowns.set("rec@corp.com", cooldown_seconds=3600)
+        self.assertTrue(cd["cooldown"])
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/arbiter/recipients/rec@corp.com/cooldown")
+
+        tk = client.arbiter.tickets.create("rec@corp.com", ticket_id="TICK-99")
+        self.assertTrue(tk["registered"])
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/arbiter/tickets")
 
     def test_keys_approvals_alias(self):
         opener, calls = make_mock_opener([

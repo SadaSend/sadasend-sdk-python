@@ -72,6 +72,7 @@ except RecipientNotAllowlistedError as err:
 ```python
 import base64
 import time
+from sadasend import SadaSendError
 
 try:
     result = sadasend.emails.send(

@@ -150,6 +150,13 @@ class TestWebhooks(unittest.TestCase):
         valid_hdr_num = make_signature(self.SECRET, number_json, now)
         self.assertIsNone(parse_webhook(self.SECRET, number_json, valid_hdr_num, at=now))
 
+    def test_non_string_non_bytes_body(self):
+        now = time.time()
+        header = make_signature(self.SECRET, self.BODY, now)
+        # Passing an int or list as body directly returns False
+        self.assertFalse(verify_webhook(self.SECRET, 12345, header, at=now))
+        self.assertFalse(verify_webhook(self.SECRET, ["invalid"], header, at=now))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -195,6 +195,19 @@ class TestErrors(unittest.TestCase):
         self.assertFalse(is_retryable(InvalidFromError("invalid_from", 400, "Invalid from")))
         self.assertFalse(is_retryable(DomainNotFoundError("domain_not_found", 404, "Not found")))
 
+    def test_repr_and_malformed_retry_after(self):
+        err = SadaSendError("test_code", 400, "Test message")
+        self.assertIn("SadaSendError('test_code', status=400, message='Test message')", repr(err))
+
+        # Malformed retryAfterSeconds
+        rl = RateLimitError("rate_limit", 429, "Too many", body={"retryAfterSeconds": "invalid_number"})
+        self.assertIsNone(rl.retry_after_seconds)
+
+    def test_to_error_default_messages(self):
+        err_no_msg = to_error(500, {})
+        self.assertIn("The API returned 500 with no error message.", str(err_no_msg))
+        self.assertEqual(err_no_msg.code, "http_500")
+
 
 if __name__ == "__main__":
     unittest.main()

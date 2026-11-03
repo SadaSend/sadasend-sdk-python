@@ -4,7 +4,7 @@
 [![Python versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://pypi.org/project/sadasend/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/SadaSend/sadasend-sdk-python/blob/main/LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20(stdlib%20only)-success.svg)](https://pypi.org/project/sadasend/)
-[![Tests Passing](https://img.shields.io/badge/tests-66%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
+[![Tests Passing](https://img.shields.io/badge/tests-83%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
 [![Typing: Typed](https://img.shields.io/badge/typing-typed-blue.svg)](https://pypi.org/project/sadasend/)
 
 The official Python SDK for [SadaSend](https://sadasend.com) — high-throughput transactional email with unbypassable server-enforced guardrails designed for human software engineering teams and autonomous AI agents.
@@ -215,9 +215,9 @@ batch = sadasend.emails.batch(emails=[
     },
 ])
 
-print(f"Batch processed: {batch["total"]} messages queued.")
+print(f"Batch processed: {batch['total']} messages queued.")
 for item in batch["results"]:
-    print(f"Recipient: {item.get("to")}, Status: {item.get("status")}")
+    print(f"Recipient: {item.get('to')}, Status: {item.get('status')}")
 ```
 
 ### 3. Retrieve, Resend, and Cancel Scheduled Emails
@@ -225,7 +225,7 @@ for item in batch["results"]:
 ```python
 # Inspect message delivery state
 message = sadasend.emails.get("msg_01hy7q8v")
-print(f"Status: {message["status"]}, Delivered at: {message.get("deliveredAt")}")
+print(f"Status: {message['status']}, Delivered at: {message.get('deliveredAt')}")
 
 # Resend an existing message under original parameters
 resend = sadasend.emails.resend("msg_01hy7q8v")
@@ -274,7 +274,7 @@ domains = sadasend.domains.list()
 # Get required DNS records (SPF, DKIM, DMARC)
 dns = sadasend.domains.records("dom_01hy7q8v")
 for record in dns["records"]:
-    print(f"[{record["type"]}] {record["host"]} -> {record["value"]} ({record["status"]})")
+    print(f"[{record['type']}] {record['host']} -> {record['value']} ({record['status']})")
 
 # Trigger live DNS verification check
 verification = sadasend.domains.verify("dom_01hy7q8v")
@@ -354,19 +354,6 @@ utm_result = sadasend.tools.utm(
 )
 print("Normalized URL:", utm_result["url"])
 # Preserves query parameters and anchor (#enterprise)
-```
-
-### 10. Prepaid Credit Packs & Paddle Checkout (`billing.credits_checkout`)
-
-Initialize a Paddle checkout transaction for prepaid verification or sending credit packs:
-
-```python
-checkout = sadasend.billing.credits_checkout(
-    pack="25k",         # "5k", "25k", "100k", "500k" for verify; "10k", "50k", "100k" for send
-    type="verify",      # "verify" | "send"
-    return_url="https://yourdomain.com/dashboard/billing",
-)
-print(f"Transaction: {checkout['transactionId']}, URL: {checkout['checkoutUrl']}")
 ```
 
 ---
@@ -490,7 +477,7 @@ except DomainNotVerifiedError as e:
     # Remediation DNS records are attached directly to the exception
     print("Domain is not verified. Please configure these DNS records:")
     for record in e.records:
-        print(f"  {record["type"]} {record["host"]} -> {record["value"]}")
+        print(f"  {record['type']} {record['host']} -> {record['value']}")
 except RecipientNotAllowlistedError as e:
     print(f"Agent key blocked: {e.recipient} is not in allowlist {e.allowlist}")
 except RecipientSuppressedError as e:
@@ -540,13 +527,13 @@ sadasend.emails.send(
     to="customer@example.com",
     subject="Order Confirmation #1234",
     html="<p>Thank you for your order!</p>",
-    idempotency_key=f"order-confirmation-1234",
+    idempotency_key="order-confirmation-1234",
 )
 ```
 
 ---
 
-## Complete API Reference (All 11 Resources)
+## Complete API Reference (All 24 Resources)
 
 | Resource | Operation | Description |
 | :--- | :--- | :--- |
@@ -556,6 +543,18 @@ sadasend.emails.send(
 | `client.emails` | `list(...)` | Enumerate sent messages with filtering by status, tag, or recipient. |
 | `client.emails` | `resend(id_)` | Resend a previously queued or sent email. |
 | `client.emails` | `cancel(id_)` | Cancel a scheduled email before dispatch. |
+| `client.inbound` | `parse(...)`, `simulate(...)` | Token-optimized Markdown parser with prompt-injection defense (~85% token reduction). |
+| `client.inbound_routes` | `list()`, `create(...)`, `get(...)`, `update(...)`, `delete(...)` | Pattern-based inbound MX routing rules. |
+| `client.inbound_messages` | `list(...)`, `get(...)` | Inbound message records and metadata. |
+| `client.dmarc_reports` | `list(...)`, `create(...)`, `get(...)` | Ingest and inspect RFC 7489 aggregate DMARC feedback XML. |
+| `client.dmarc_domains` | `summary(...)` | Deliverability scorecard, alignment percentages, and policy upgrade guidance. |
+| `client.dmarc` | `threats()` | Forensic threat analysis and unauthorized spoofing sources. |
+| `client.arbiter` | `stats()` | Cross-agent collision statistics and prevented contact loops. |
+| `client.arbiter_recipients` | `set_cooldown(...)`, `clear_cooldown(...)`, `status(...)` | Contact quiet periods and multi-agent coordination. |
+| `client.arbiter_tickets` | `create(...)`, `delete(...)` | Support-ticket delivery holds. |
+| `client.inboxes` | `ephemeral(...)`, `otp(...)`, `messages(...)`, `stream(...)` | Sub-10ms disposable 2FA agent inboxes and OTP extraction. |
+| `client.testing` | `inbound(...)`, `wait_for_code(...)` | E2E sandbox testing and test inbox ingestion. |
+| `client.testing_inboxes` | `code(...)`, `latest(...)` | Direct test inbox inspection. |
 | `client.domains` | `list()` | List all sending domains registered on the account. |
 | `client.domains` | `records(id_)` | Retrieve SPF, DKIM, and DMARC DNS record requirements. |
 | `client.domains` | `verify(id_)` | Run a live internet DNS check to verify domain records. |
@@ -575,7 +574,8 @@ sadasend.emails.send(
 | `client.keys_approvals`| `list()` | Enumerate held emails awaiting human approval. |
 | `client.support_tickets`| `list()`, `get(id_)` | View support tickets and communications. |
 | `client.team` | `get()` | Enumerate team members, owners, and roles. |
-| `client.tools` | `list()`, `check(...)` | Run free unauthenticated deliverability checks (SPF, DKIM, DMARC, DNS). |
+| `client.tools` | `list()`, `check(...)`, `utm(...)`, `verify(...)`, `verify_batch(...)` | Deliverability tools and verification checks. |
+| `client.integrations` | `slack()` | 1-click Slack interactive approvals configuration status. |
 | `client.webhooks` | `list()`, `deliveries(...)` | View webhook endpoints and delivery attempt logs. |
 
 ---

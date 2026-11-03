@@ -263,6 +263,9 @@ class TestResources(unittest.TestCase):
         opener, calls = make_mock_opener([
             (200, {"tools": ["dns", "spf", "dkim", "dmarc"]}, {}),
             (200, {"check": "dns", "valid": True}, {}),
+            (200, {"url": "https://sadasend.com?utm_source=agent"}, {}),
+            (200, {"email": "test@example.com", "status": "deliverable"}, {}),
+            (200, {"ok": True, "total": 2, "deliverable": 2}, {}),
         ])
         client = SadaSend(api_key=self.api_key, opener=opener)
 
@@ -278,6 +281,29 @@ class TestResources(unittest.TestCase):
         self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/tools/dns")
         self.assertEqual(calls[-1]["body"]["subject"], "sadasend.com")
         self.assertEqual(calls[-1]["body"]["selector"], "s1")
+
+        # utm
+        utm_res = client.tools.utm(url="https://sadasend.com", source="agent", medium="email")
+        self.assertIn("utm_source=agent", utm_res["url"])
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/tools/utm")
+        self.assertEqual(calls[-1]["body"]["url"], "https://sadasend.com")
+        self.assertEqual(calls[-1]["body"]["source"], "agent")
+        self.assertEqual(calls[-1]["body"]["medium"], "email")
+
+        # verify
+        v_res = client.tools.verify(email="test@example.com")
+        self.assertEqual(v_res["status"], "deliverable")
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/tools/verify")
+        self.assertEqual(calls[-1]["body"]["email"], "test@example.com")
+
+        # verify_batch
+        vb_res = client.tools.verify_batch(emails=["a@b.com", "c@d.com"])
+        self.assertTrue(vb_res["ok"])
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/tools/verify/batch")
+        self.assertEqual(calls[-1]["body"]["emails"], ["a@b.com", "c@d.com"])
 
     # 10. Webhooks
     def test_webhooks_operations(self):
@@ -298,3 +324,255 @@ class TestResources(unittest.TestCase):
         self.assertEqual(calls[-1]["method"], "GET")
         self.assertIn("limit=10", calls[-1]["url"])
         self.assertIn("event=email.delivered", calls[-1]["url"])
+
+    # 11. Inbound
+    def test_inbound_operations(self):
+        opener, calls = make_mock_opener([
+            (200, {"routes": [{"id": "rt_1", "pattern": "*@inbound.example.com"}]}, {}),
+            (200, {"route": {"id": "rt_1", "pattern": "*@inbound.example.com"}}, {}),
+            (200, {"id": "rt_2", "pattern": "sales@*"}, {}),
+            (200, {"id": "rt_1", "active": False}, {}),
+            (200, {"deleted": True}, {}),
+            (200, {"messages": [{"id": "in_msg_1", "from": "sender@external.com"}]}, {}),
+            (200, {"id": "in_msg_1", "subject": "Contract"}, {}),
+            (200, {"content": {"cleanMarkdown": "Hello", "hasQuotedHistory": False}, "security": {"injectionRiskScore": 0.05}}, {}),
+            (200, {"matched": True, "targetUrl": "https://example.com/webhook"}, {}),
+        ])
+        client = SadaSend(api_key=self.api_key, opener=opener)
+
+        # inbound_routes list & get
+        routes = client.inbound_routes.list()
+        self.assertEqual(len(routes["routes"]), 1)
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/routes")
+
+        rt = client.inbound_routes.get("rt_1")
+        self.assertEqual(rt["route"]["id"], "rt_1")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/routes/rt_1")
+
+        # inbound_routes create
+        created_rt = client.inbound_routes.create(pattern="sales@*", target_type="webhook", webhook_url="https://app.com/inbound", priority=10, active=True)
+        self.assertEqual(created_rt["id"], "rt_2")
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/routes")
+        self.assertEqual(calls[-1]["body"]["pattern"], "sales@*")
+        self.assertEqual(calls[-1]["body"]["targetType"], "webhook")
+
+        # inbound_routes update
+        updated_rt = client.inbound_routes.update("rt_1", pattern="vip@*", active=False)
+        self.assertEqual(calls[-1]["method"], "PATCH")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/routes/rt_1")
+        self.assertEqual(calls[-1]["body"]["pattern"], "vip@*")
+        self.assertFalse(calls[-1]["body"]["active"])
+
+        # inbound_routes delete
+        del_rt = client.inbound_routes.delete("rt_1")
+        self.assertTrue(del_rt["deleted"])
+        self.assertEqual(calls[-1]["method"], "DELETE")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/routes/rt_1")
+
+        # inbound_messages list & get
+        msgs = client.inbound_messages.list(limit=5)
+        self.assertEqual(len(msgs["messages"]), 1)
+        self.assertIn("limit=5", calls[-1]["url"])
+
+        single_msg = client.inbound_messages.get("in_msg_1")
+        self.assertEqual(single_msg["id"], "in_msg_1")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/messages/in_msg_1")
+
+        # inbound parse
+        parsed = client.inbound.parse(subject="Update", text="Hello\n\n> Quoted text")
+        self.assertEqual(parsed["content"]["cleanMarkdown"], "Hello")
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/parse")
+
+        # inbound simulate
+        sim = client.inbound.simulate(recipient="test@inbound.example.com")
+        self.assertTrue(sim["matched"])
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inbound/simulate")
+
+    # 12. DMARC
+    def test_dmarc_operations(self):
+        opener, calls = make_mock_opener([
+            (200, {"reports": [{"id": "dm_rep_1", "org": "google.com"}]}, {}),
+            (200, {"id": "dm_rep_1", "evaluated": True}, {}),
+            (200, {"id": "dm_rep_2", "status": "processed"}, {}),
+            (200, {"domain": "example.com", "dkimAlignmentPct": 100, "currentPolicy": "reject"}, {}),
+            (200, {"threats": [{"ip": "1.2.3.4", "count": 42}]}, {}),
+        ])
+        client = SadaSend(api_key=self.api_key, opener=opener)
+
+        # dmarc_reports list & get & create
+        reps = client.dmarc_reports.list(limit=10)
+        self.assertEqual(len(reps["reports"]), 1)
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/dmarc/reports?limit=10")
+
+        rep = client.dmarc_reports.get("dm_rep_1")
+        self.assertEqual(rep["id"], "dm_rep_1")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/dmarc/reports/dm_rep_1")
+
+        created_rep = client.dmarc_reports.create(xml="<feedback>test</feedback>", filename="google.xml")
+        self.assertEqual(created_rep["id"], "dm_rep_2")
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/dmarc/reports")
+        self.assertEqual(calls[-1]["body"]["xml"], "<feedback>test</feedback>")
+        self.assertEqual(calls[-1]["body"]["filename"], "google.xml")
+
+        # dmarc_domains summary
+        summary = client.dmarc_domains.summary("example.com")
+        self.assertEqual(summary["dkimAlignmentPct"], 100)
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/dmarc/domains/example.com/summary")
+
+        # dmarc threats
+        threats = client.dmarc.threats()
+        self.assertEqual(len(threats["threats"]), 1)
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/dmarc/threats")
+
+    # 13. Arbiter
+    def test_arbiter_operations(self):
+        opener, calls = make_mock_opener([
+            (200, {"activeCooldowns": 3, "pendingHolds": 0}, {}),
+            (200, {"cooldown": True, "expiresAt": "2026-10-31T00:00:00Z"}, {}),
+            (200, {"cleared": True}, {}),
+            (200, {"allowed": True}, {}),
+            (200, {"registered": True, "ticketId": "TICK-101"}, {}),
+            (200, {"deleted": True}, {}),
+        ])
+        client = SadaSend(api_key=self.api_key, opener=opener)
+
+        # arbiter stats
+        stats = client.arbiter.stats()
+        self.assertEqual(stats["activeCooldowns"], 3)
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/arbiter/stats")
+
+        # arbiter set cooldown
+        set_res = client.arbiter_recipients.set_cooldown("lead@corp.com", cooldown_seconds=86400, priority="follow_up", agent_name="sales-bot")
+        self.assertTrue(set_res["cooldown"])
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/arbiter/recipients/lead@corp.com/cooldown")
+        self.assertEqual(calls[-1]["body"]["cooldownSeconds"], 86400)
+        self.assertEqual(calls[-1]["body"]["priority"], "follow_up")
+        self.assertEqual(calls[-1]["body"]["agentName"], "sales-bot")
+
+        # arbiter clear cooldown
+        clr_res = client.arbiter_recipients.clear_cooldown("lead@corp.com")
+        self.assertTrue(clr_res["cleared"])
+        self.assertEqual(calls[-1]["method"], "DELETE")
+
+        # arbiter recipient status
+        st_res = client.arbiter_recipients.status("lead@corp.com")
+        self.assertTrue(st_res["allowed"])
+        self.assertEqual(calls[-1]["method"], "GET")
+
+        # arbiter tickets create & delete
+        t_create = client.arbiter_tickets.create(recipient="lead@corp.com", ticket_id="TICK-101", subject="Billing issue", hold_priority_threshold=3)
+        self.assertTrue(t_create["registered"])
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/arbiter/tickets")
+        self.assertEqual(calls[-1]["body"]["recipient"], "lead@corp.com")
+        self.assertEqual(calls[-1]["body"]["ticketId"], "TICK-101")
+        self.assertEqual(calls[-1]["body"]["holdPriorityThreshold"], 3)
+
+        t_del = client.arbiter_tickets.delete("lead@corp.com")
+        self.assertTrue(t_del["deleted"])
+        self.assertEqual(calls[-1]["method"], "DELETE")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/arbiter/tickets/lead@corp.com")
+
+    # 14. Inboxes
+    def test_inboxes_operations(self):
+        opener, calls = make_mock_opener([
+            (200, {"inboxes": [{"id": "inb_1"}]}, {}),
+            (200, {"inbox": {"id": "inb_1", "email": "agent-1@test.sadasend.com"}}, {}),
+            (200, {"inbox": {"id": "inb_1"}}, {}),
+            (200, {"code": "849201", "magicLink": None}, {}),
+            (200, {"messages": [{"id": "m1", "subject": "Your code"}]}, {}),
+            (200, {"ingested": True, "otp": "999888"}, {}),
+            (200, {"stream": "active"}, {}),
+            (200, {"deleted": True}, {}),
+        ])
+        client = SadaSend(api_key=self.api_key, opener=opener)
+
+        # inboxes list
+        inb_list = client.inboxes.list()
+        self.assertEqual(len(inb_list["inboxes"]), 1)
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes")
+
+        # ephemeral inbox creation
+        inb = client.inboxes.ephemeral(ttl_seconds=600, alias="pw-agent")
+        self.assertEqual(inb["inbox"]["id"], "inb_1")
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/ephemeral")
+        self.assertEqual(calls[-1]["body"]["ttlSeconds"], 600)
+        self.assertEqual(calls[-1]["body"]["alias"], "pw-agent")
+
+        # get inbox
+        inb_info = client.inboxes.get("inb_1")
+        self.assertEqual(inb_info["inbox"]["id"], "inb_1")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/inb_1")
+
+        # otp retrieval
+        otp = client.inboxes.otp("inb_1")
+        self.assertEqual(otp["code"], "849201")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/inb_1/otp")
+
+        # inbox messages
+        msgs = client.inboxes.messages("inb_1")
+        self.assertEqual(len(msgs["messages"]), 1)
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/inb_1/messages")
+
+        # inbox inbound ingestion
+        inb_res = client.inboxes.inbound(to="inb_1@auth.sadasend.com", from_="auth@corp.com", subject="Verification", text="Your OTP is 999888")
+        self.assertTrue(inb_res["ingested"])
+        self.assertEqual(calls[-1]["method"], "POST")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/inbound")
+        self.assertEqual(calls[-1]["body"]["to"], "inb_1@auth.sadasend.com")
+
+        # inboxes stream
+        stream_res = client.inboxes.stream("inb_1")
+        self.assertEqual(stream_res["stream"], "active")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/inb_1/stream")
+
+        # inboxes delete
+        del_inb = client.inboxes.delete("inb_1")
+        self.assertTrue(del_inb["deleted"])
+        self.assertEqual(calls[-1]["method"], "DELETE")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/inb_1")
+
+    # 15. Testing
+    def test_testing_operations(self):
+        opener, calls = make_mock_opener([
+            (200, {"status": "ingested", "id": "tst_msg_1"}, {}),
+            (200, {"code": "123456"}, {}),
+            (200, {"code": "654321"}, {}),
+            (200, {"message": {"id": "m1", "subject": "Test"}}, {}),
+        ])
+        client = SadaSend(api_key=self.api_key, opener=opener)
+
+        # testing inbound
+        ing = client.testing.inbound(to="t@test.com", from_="f@test.com", subject="Test", text="Hello")
+        self.assertEqual(ing["status"], "ingested")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/inbound")
+
+        # wait for code
+        wfc = client.testing.wait_for_code(to="t@test.com", timeout_ms=5000)
+        self.assertEqual(wfc["code"], "123456")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/wait-for-code")
+
+        # testing inboxes code & latest
+        c = client.testing_inboxes.code("t@test.com")
+        self.assertEqual(c["code"], "654321")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/inboxes/t@test.com/code")
+
+        latest = client.testing_inboxes.latest("t@test.com")
+        self.assertEqual(latest["message"]["id"], "m1")
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/inboxes/t@test.com/latest")
+
+    # 16. Integrations
+    def test_integrations_operations(self):
+        opener, calls = make_mock_opener([
+            (200, {"connected": True, "channel": "#alerts"}, {}),
+        ])
+        client = SadaSend(api_key=self.api_key, opener=opener)
+
+        res = client.integrations.slack()
+        self.assertTrue(res["connected"])
+        self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/integrations/slack")

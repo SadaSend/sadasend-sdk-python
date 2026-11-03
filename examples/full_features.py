@@ -4,17 +4,22 @@ SadaSend Python SDK — Full Features Walkthrough
 
 This example demonstrates the complete capabilities of SadaSend in Python:
 1. Client initialization with custom timeouts & retry policies
-2. Advanced transactional sending (HTML, text, CC, BCC, Reply-To, tags, headers, attachments)
-3. Idempotency guarantees & preflight dry runs (`dry_run=True`)
-4. Scheduled sending & atomic cancellation
-5. High-efficiency batch email dispatch with per-item Multi-Status evaluation
-6. Email resend under originating key
-7. Idiomatic Python exception handling with actionable guardrail remediation
-8. Server-side template rendering with Liquid variables
-9. Sending domains management & on-demand DNS verification
-10. Suppression list management (add & search)
-11. Account observability, quotas, deliverability stats & volume sparklines
+2. Account health, quotas, deliverability stats & volume sparklines
+3. Sending domains management & on-demand DNS verification
+4. Idempotency guarantees & preflight dry runs (`dry_run=True`)
+5. Advanced transactional sending (HTML, text, CC, BCC, Reply-To, tags, headers, attachments)
+6. Message delivery inspection & event trails
+7. Email resend under originating key
+8. Scheduled sending & atomic cancellation
+9. High-efficiency batch email dispatch with per-item Multi-Status evaluation
+10. Server-side template rendering with Liquid variables
+11. Suppression list management (add & search)
 12. Webhook endpoints & constant-time HMAC-SHA256 signature verification
+13. Real-time deliverability verification shield
+14. Standardized UTM campaign URL builder
+15. Multi-agent collision arbitration & cross-agent cooldowns
+16. Dynamic ephemeral inboxes & fast OTP code retrieval
+17. Context-safe inbound email parser with prompt injection scoring
 
 Run this example:
   SADASEND_API_KEY="your_api_key" python3 examples/full_features.py
@@ -73,7 +78,7 @@ print("=== SadaSend Python SDK: Full Features Demo ===\n")
 # ---------------------------------------------------------------------------
 # 2. Account Health, Quotas & Reputation
 # ---------------------------------------------------------------------------
-print("--- 1. Account Telemetry & Deliverability Health ---")
+print("--- 2. Account Telemetry & Deliverability Health ---")
 try:
     account = sadasend.account.get()
     print(f"Org: {account.get('org')} | Plan: {str(account.get('plan')).upper()}")
@@ -96,7 +101,7 @@ except SadaSendError as err:
 # ---------------------------------------------------------------------------
 # 3. Domain Management & DNS Verification
 # ---------------------------------------------------------------------------
-print("\n--- 2. Sending Domains & DNS Records ---")
+print("\n--- 3. Sending Domains & DNS Records ---")
 primary_domain_id = ""
 try:
     domains_resp = sadasend.domains.list()
@@ -126,7 +131,7 @@ except SadaSendError as err:
 # ---------------------------------------------------------------------------
 # 4. Preflight Dry Run Send (Zero Risk)
 # ---------------------------------------------------------------------------
-print("\n--- 3. Preflight Dry Run (Validation Only) ---")
+print("\n--- 4. Preflight Dry Run (Validation Only) ---")
 try:
     dry_run = sadasend.emails.send(
         from_="noreply@onboarding.sadasend.com",
@@ -142,7 +147,7 @@ except SadaSendError as err:
 # ---------------------------------------------------------------------------
 # 5. Full-Powered Transactional Send (Attachments, Tags, Custom Headers)
 # ---------------------------------------------------------------------------
-print("\n--- 4. Full-Featured Transactional Email Send ---")
+print("\n--- 5. Full-Featured Transactional Email Send ---")
 invoice_pdf_base64 = base64.b64encode(b"%PDF-1.4 Mock Invoice Content").decode("utf-8")
 sent_message_id = ""
 
@@ -191,7 +196,7 @@ except SadaSendError as err:
 # 6. Inspecting Message & Event Trail
 # ---------------------------------------------------------------------------
 if sent_message_id:
-    print("\n--- 5. Message Event Trail Inspection ---")
+    print("\n--- 6. Message Event Trail Inspection ---")
     try:
         msg = sadasend.emails.get(sent_message_id)
         print(f"Message ID: {msg.get('id')}")
@@ -204,7 +209,7 @@ if sent_message_id:
     # -----------------------------------------------------------------------
     # 7. Message Resending
     # -----------------------------------------------------------------------
-    print("\n--- 6. Resending Message ---")
+    print("\n--- 7. Resending Message ---")
     try:
         resend_resp = sadasend.emails.resend(sent_message_id)
         print(f"Resend queued under original key! New ID: {resend_resp.get('id')} (status: {resend_resp.get('status')})")
@@ -214,7 +219,7 @@ if sent_message_id:
 # ---------------------------------------------------------------------------
 # 8. Scheduled Sending & Atomic Cancellation
 # ---------------------------------------------------------------------------
-print("\n--- 7. Scheduled Sending & Atomic Cancellation ---")
+print("\n--- 8. Scheduled Sending & Atomic Cancellation ---")
 try:
     in_two_hours = (
         datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
@@ -238,7 +243,7 @@ except SadaSendError as err:
 # ---------------------------------------------------------------------------
 # 9. Batch Sending (Multi-Status RFC 4918 / 207)
 # ---------------------------------------------------------------------------
-print("\n--- 8. High-Efficiency Batch Sending ---")
+print("\n--- 9. High-Efficiency Batch Sending ---")
 try:
     batch_resp = sadasend.emails.batch(
         emails=[
@@ -271,7 +276,7 @@ except SadaSendError as err:
 # ---------------------------------------------------------------------------
 # 10. Server-Side Liquid Template Rendering
 # ---------------------------------------------------------------------------
-print("\n--- 9. Server-Side Template Rendering ---")
+print("\n--- 10. Server-Side Template Rendering ---")
 try:
     templates_resp = sadasend.templates.list()
     templates = templates_resp.get("templates", [])
@@ -296,7 +301,7 @@ except SadaSendError as err:
 # ---------------------------------------------------------------------------
 # 11. Suppression List Management
 # ---------------------------------------------------------------------------
-print("\n--- 10. Suppression Management ---")
+print("\n--- 11. Suppression Management ---")
 try:
     unsub_addr = f"unsubscribed-py-{int(time.time())}@example.com"
     add_supp = sadasend.suppressions.add(address=unsub_addr, reason="unsubscribe")
@@ -311,7 +316,7 @@ except SadaSendError as err:
 # ---------------------------------------------------------------------------
 # 12. Constant-Time Webhook Signature Verification
 # ---------------------------------------------------------------------------
-print("\n--- 11. Secure Webhook Verification ---")
+print("\n--- 12. Secure Webhook Verification ---")
 webhook_secret = "whsec_sample_webhook_secret_key_py_998877"
 webhook_payload = json.dumps({
     "id": "evt_sample_deliver_py_01",
@@ -341,9 +346,9 @@ if event:
     print(f"Parsed Webhook Event: type = {event.get('type')}, id = {event.get('id')}")
 
 # ---------------------------------------------------------------------------
-# 12. Real-Time Deliverability Verification & Shield
+# 13. Real-Time Deliverability Verification & Shield
 # ---------------------------------------------------------------------------
-print("\n--- 12. Real-Time Deliverability Verification ---")
+print("\n--- 13. Real-Time Deliverability Verification ---")
 try:
     verify_res = sadasend.tools.verify(email=TEST_RECIPIENT)
     print(f"Verified recipient {verify_res.get('email')}: status = {verify_res.get('status')}, score = {verify_res.get('score')}/100")
@@ -357,9 +362,9 @@ except SadaSendError as err:
     print(f"Batch deliverability verification: {err}")
 
 # ---------------------------------------------------------------------------
-# 13. Standardized UTM Campaign URL Tagging
+# 14. Standardized UTM Campaign URL Tagging
 # ---------------------------------------------------------------------------
-print("\n--- 13. Standardized UTM Campaign URL Builder ---")
+print("\n--- 14. Standardized UTM Campaign URL Builder ---")
 try:
     utm_res = sadasend.tools.utm(
         url="https://sadasend.com/docs?ref=partner#pricing",
@@ -374,18 +379,38 @@ except SadaSendError as err:
     print(f"UTM URL builder: {err}")
 
 # ---------------------------------------------------------------------------
-# 14. Prepaid Credit Pack Checkout
+# 15. Multi-Agent Collision Arbiter & Cooldowns
 # ---------------------------------------------------------------------------
-print("\n--- 14. Prepaid Credit Pack Checkout ---")
+print("\n--- 15. Multi-Agent Collision Arbiter & Cooldowns ---")
 try:
-    checkout = sadasend.billing.credits_checkout(
-        type="verify",
-        pack="25k",
-        return_url="https://app.sadasend.com/billing",
-    )
-    print(f"Initialized Paddle Checkout: {checkout.get('checkoutUrl')} (Transaction ID: {checkout.get('transactionId')})")
+    arbiter_stats = sadasend.arbiter.stats()
+    print(f"Collision Arbiter Active Cooldowns: {arbiter_stats.get('activeCooldowns', 0)}")
 except SadaSendError as err:
-    print(f"Prepaid credit checkout: {err}")
+    print(f"Arbiter stats query: {err}")
+
+# ---------------------------------------------------------------------------
+# 16. Ephemeral Inboxes & OTP Retrieval
+# ---------------------------------------------------------------------------
+print("\n--- 16. Ephemeral Agent Inboxes & Fast OTP Retrieval ---")
+try:
+    inbox_info = sadasend.inboxes.create(alias="agent-e2e-demo", ttl_seconds=300)
+    print(f"Provisioned ephemeral inbox: {inbox_info.get('inbox', {}).get('email')}")
+except SadaSendError as err:
+    print(f"Ephemeral inbox creation: {err}")
+
+# ---------------------------------------------------------------------------
+# 17. Inbound Context-Safe Parser & Injection Scoring
+# ---------------------------------------------------------------------------
+print("\n--- 17. Inbound Context-Safe Email Parser ---")
+try:
+    parsed_inbound = sadasend.inbound.parse(
+        subject="Re: Monthly Report",
+        text="Looks great, approve!\n\n> On Oct 30, sent report...",
+    )
+    print(f"Clean markdown extracted: '{parsed_inbound.get('content', {}).get('cleanMarkdown')}'")
+    print(f"Prompt injection risk: {parsed_inbound.get('security', {}).get('injectionRiskScore')}")
+except SadaSendError as err:
+    print(f"Inbound parser: {err}")
 
 print("\n=== SadaSend Python SDK Demo Completed Successfully ===\n")
 
