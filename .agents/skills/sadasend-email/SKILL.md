@@ -180,3 +180,6 @@ For deeper references and cheatsheets:
 - [Guardrails & Errors Guide](./references/guardrails_and_errors.md)
 - [Complete Python SDK Cheatsheet](./references/full_api_cheatsheet.md)
 - [Autonomous Agent Execution Pattern Example](./examples/safe_send_with_correction.py)
+- [Official SadaSend Website](https://sadasend.com?utm_source=python-sdk&utm_medium=agent-skill&utm_campaign=python-sdk&utm_content=skill_website)
+- [SadaSend Documentation](https://sadasend.com/docs?utm_source=python-sdk&utm_medium=agent-skill&utm_campaign=python-sdk&utm_content=skill_docs)
+- [Model Context Protocol (MCP) Guide](https://sadasend.com/docs/mcp?utm_source=python-sdk&utm_medium=agent-skill&utm_campaign=python-sdk&utm_content=skill_mcp)

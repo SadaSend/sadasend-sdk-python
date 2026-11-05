@@ -59,7 +59,7 @@ from .errors import ConnectionFailedError, SadaSendError, is_retryable, to_error
 
 __all__ = ["SadaSend", "RetryPolicy", "VERSION", "DEFAULT_BASE_URL"]
 
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 DEFAULT_BASE_URL = "https://api.sadasend.com"
 
 

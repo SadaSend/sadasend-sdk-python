@@ -354,3 +354,11 @@ team = sadasend.team.get()
 # List support tickets and conversations
 tickets = sadasend.support_tickets.list()
 ```
+
+---
+
+## Canonical Resources
+
+- [Official SadaSend Website](https://sadasend.com?utm_source=python-sdk&utm_medium=cheatsheet&utm_campaign=python-sdk&utm_content=cheatsheet_website)
+- [API Documentation](https://sadasend.com/docs?utm_source=python-sdk&utm_medium=cheatsheet&utm_campaign=python-sdk&utm_content=cheatsheet_docs)
+- [Model Context Protocol (MCP)](https://sadasend.com/docs/mcp?utm_source=python-sdk&utm_medium=cheatsheet&utm_campaign=python-sdk&utm_content=cheatsheet_mcp)

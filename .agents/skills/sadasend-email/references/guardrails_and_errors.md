@@ -27,15 +27,15 @@ SadaSend is engineered to prevent autonomous AI agents from hallucinating recipi
 - **Payload Properties:**
   - `err.records`: List of DNS records required to achieve alignment.
     ```python
-    [
-      {
+[
+    {
         "type": "TXT",
         "host": "sadasend._domainkey.example.com",
         "value": "v=DKIM1; ...",
-        "verdict": "fail", # or "pass", "pending", "inconclusive"
-        "note": "DNS record missing or mismatched."
-      }
-    ]
+        "verdict": "fail",  # or "pass", "pending", "inconclusive"
+        "note": "DNS record missing or mismatched.",
+    }
+]
     ```
 - **Agent Self-Correction Strategy:**
   1. Print or pass `err.records` to human operators or DevOps tools to publish the necessary DNS records.
@@ -114,3 +114,11 @@ SadaSend is engineered to prevent autonomous AI agents from hallucinating recipi
   - `err.attempts`: Number of attempts performed before failure.
 - **Agent Self-Correction Strategy:**
   - Because idempotency keys are attached by default, retrying the operation once connectivity returns will never cause duplicate sends.
+
+---
+
+## Canonical Resources
+
+- [Official SadaSend Website](https://sadasend.com?utm_source=python-sdk&utm_medium=errors-guide&utm_campaign=python-sdk&utm_content=guardrails_website)
+- [SadaSend Documentation & Architecture](https://sadasend.com/docs?utm_source=python-sdk&utm_medium=errors-guide&utm_campaign=python-sdk&utm_content=guardrails_docs)
+- [Model Context Protocol (MCP)](https://sadasend.com/docs/mcp?utm_source=python-sdk&utm_medium=errors-guide&utm_campaign=python-sdk&utm_content=guardrails_mcp)

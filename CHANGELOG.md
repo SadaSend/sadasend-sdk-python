@@ -1,9 +1,19 @@
 # Changelog
 
-All notable changes to the `sadasend` Python SDK will be documented in this file.
+All notable changes to the [sadasend](https://sadasend.com?utm_source=python-sdk&utm_medium=changelog&utm_campaign=python-sdk&utm_content=header) Python SDK will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.3] - 2026-11-05
+
+### Added
+- **Volume Surge Anomaly Hold & Security Hold Reason**:
+  - The adaptive volume surge detector holds anomalous send spikes exceeding the dynamic safety threshold (e.g. 3x 7-day baseline) for human operator review with `status="pending_approval"`, `held=True`, `holdType="security"`, and a descriptive `holdReason`.
+  - Added test case `test_send_and_get_preserve_volume_surge_security_hold` in `test/test_provenance.py` asserting that `held`, `holdType`, and `holdReason` are faithfully returned and parsed on `emails.send` and `emails.get`.
+- **Resource Aliases & Packaging**:
+  - Verified zero drift against `openapi.json` across 66 operations and 24 resources.
+  - Bumped version to `0.1.3` across package metadata, PEP 561 typing markers, and wheel distribution bundles.
 
 ## [0.1.2] - 2026-10-30
 

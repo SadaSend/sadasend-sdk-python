@@ -4,10 +4,10 @@
 [![Python versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://pypi.org/project/sadasend/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/SadaSend/sadasend-sdk-python/blob/main/LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20(stdlib%20only)-success.svg)](https://pypi.org/project/sadasend/)
-[![Tests Passing](https://img.shields.io/badge/tests-83%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
+[![Tests Passing](https://img.shields.io/badge/tests-84%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
 [![Typing: Typed](https://img.shields.io/badge/typing-typed-blue.svg)](https://pypi.org/project/sadasend/)
 
-The official Python SDK for [SadaSend](https://sadasend.com) — high-throughput transactional email with unbypassable server-enforced guardrails designed for human software engineering teams and autonomous AI agents.
+The official Python SDK for [SadaSend](https://sadasend.com?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=header) — high-throughput transactional email with unbypassable server-enforced guardrails designed for human software engineering teams and autonomous AI agents.
 
 **Zero external dependencies.** Built strictly on the Python standard library (`urllib.request`, `hmac`, `hashlib`, `json`). No transitive dependencies, no version pinning conflicts, no vulnerability CVE alerts, and zero supply-chain risk.
 
@@ -599,7 +599,7 @@ Add SadaSend directly to your agent config:
 }
 ```
 
-Learn more in our [Model Context Protocol Guide](https://sadasend.com/docs/mcp).
+Learn more in our [Model Context Protocol Guide](https://sadasend.com/docs/mcp?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=mcp_guide).
 
 ---
 
@@ -627,14 +627,14 @@ Python 3.9, 3.10, 3.11, 3.12, and 3.13 are fully supported and verified in CI.
 
 ## Canonical Resources
 
-- **Official Website**: [https://sadasend.com](https://sadasend.com)
-- **API Documentation**: [https://sadasend.com/docs](https://sadasend.com/docs)
-- **Pricing & Plans**: [https://sadasend.com/pricing](https://sadasend.com/pricing)
-- **Model Context Protocol (MCP)**: [https://sadasend.com/docs/mcp](https://sadasend.com/docs/mcp)
+- **Official Website**: [https://sadasend.com](https://sadasend.com?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=canonical_website)
+- **API Documentation**: [https://sadasend.com/docs](https://sadasend.com/docs?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=canonical_docs)
+- **Pricing & Plans**: [https://sadasend.com/pricing](https://sadasend.com/pricing?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=canonical_pricing)
+- **Model Context Protocol (MCP)**: [https://sadasend.com/docs/mcp](https://sadasend.com/docs/mcp?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=canonical_mcp)
 - **Developer Support**: [support@sadasend.com](mailto:support@sadasend.com)
 
 ---
 
 ## License
 
-MIT © [SadaSend](https://sadasend.com)
+MIT © [SadaSend](https://sadasend.com?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=footer)

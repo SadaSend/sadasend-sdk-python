@@ -128,6 +128,43 @@ class TestProvenance(unittest.TestCase):
         self.assertEqual(req["headers"]["x-sadasend-agent"], "sync-bot")
         self.assertEqual(req["headers"]["x-sadasend-priority"], "billing")
 
+    def test_send_and_get_preserve_volume_surge_security_hold(self):
+        opener, calls = make_mock_opener([
+            (202, {
+                "id": "msg_held_1",
+                "status": "pending_approval",
+                "held": True,
+                "holdType": "security",
+                "holdReason": "Volume surge anomaly detected: projected daily volume (3,500) exceeds safety threshold (3,000, 3x 7-day baseline). Held for operator review.",
+            }, {}),
+            (200, {
+                "id": "msg_held_1",
+                "status": "pending_approval",
+                "held": True,
+                "holdType": "security",
+                "holdReason": "Volume surge anomaly detected: projected daily volume (3,500) exceeds safety threshold (3,000, 3x 7-day baseline). Held for operator review.",
+                "at": "2026-11-05T20:00:00Z",
+            }, {}),
+        ])
+        client = SadaSend("sada_live_sk_test", opener=opener)
+
+        res = client.emails.send(
+            from_="sender@acme.com",
+            to="bulk@example.com",
+            subject="Blast",
+            text="Hello",
+        )
+        self.assertEqual(res["status"], "pending_approval")
+        self.assertTrue(res["held"])
+        self.assertEqual(res["holdType"], "security")
+        self.assertIn("Volume surge anomaly detected", res["holdReason"])
+
+        msg = client.emails.get("msg_held_1")
+        self.assertEqual(msg["status"], "pending_approval")
+        self.assertTrue(msg["held"])
+        self.assertEqual(msg["holdType"], "security")
+        self.assertIn("Volume surge anomaly detected", msg["holdReason"])
+
 
 if __name__ == "__main__":
     unittest.main()
