@@ -117,6 +117,16 @@ SadaSend is engineered to prevent autonomous AI agents from hallucinating recipi
 
 ---
 
+## 9. Volume Surge Anomaly Hold (`holdType="security"`)
+
+- **Payload Response:** `{"status": "pending_approval", "held": True, "holdType": "security", "holdReason": "..."}`
+- **Why It Happens:** The adaptive volume surge detector flagged an anomalous spike exceeding the dynamic account safety ceiling (e.g. 3x 7-day volume baseline). The request is safely accepted and placed in the Human Approval Queue with security review status.
+- **Agent Self-Correction Strategy:**
+  1. Do **not** treat as a failure or retry the request. The send was safely queued and preserved.
+  2. Log `res.get("holdReason")` and notify the human operator or dashboard supervisor that operator sign-off is needed.
+
+---
+
 ## Canonical Resources
 
 - [Official SadaSend Website](https://sadasend.com?utm_source=python-sdk&utm_medium=errors-guide&utm_campaign=python-sdk&utm_content=guardrails_website)

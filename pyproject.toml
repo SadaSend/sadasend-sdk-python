@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sadasend"
-version = "0.1.3"
+version = "0.1.4"
 description = "The official Python SDK for SadaSend. Transactional email with unbypassable guardrails, zero runtime dependencies, and native agent safety."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -54,6 +54,9 @@ classifiers = [
 # Deliberately empty: standard library only (urllib, hmac, hashlib, json).
 # Zero runtime dependencies guarantees zero supply-chain CVE vulnerabilities.
 dependencies = []
+
+[project.entry-points.pytest11]
+sadasend = "sadasend.playwright"
 
 [project.urls]
 Homepage = "https://sadasend.com"

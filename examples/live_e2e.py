@@ -309,6 +309,33 @@ def test_webhooks_verify():
 
 check("webhooks.verify_webhook() HMAC cryptographic signature verification", test_webhooks_verify)
 
+
+# 7. Inboxes Stream URL Helper
+def test_inboxes_stream_url():
+    url = client.inboxes.stream_url("inb_test_e2e")
+    expected = f"{BASE_URL}/inboxes/inb_test_e2e/stream"
+    if url != expected:
+        raise ValueError(f"Expected stream URL {expected}, got: {url}")
+    # Also verify camelCase alias
+    url_alias = client.inboxes.streamUrl("inb_test_e2e")
+    if url_alias != expected:
+        raise ValueError(f"Expected camelCase streamUrl {expected}, got: {url_alias}")
+
+
+check("inboxes.stream_url() and streamUrl() helper", test_inboxes_stream_url)
+
+
+# 8. Playwright & Pytest Fixtures
+def test_playwright_fixture_import():
+    from sadasend.playwright import EphemeralInboxFixture
+    fixture = EphemeralInboxFixture(client, {"id": "inb_1", "email": "test@sada.email"})
+    if fixture.id != "inb_1" or fixture.email != "test@sada.email":
+        raise ValueError("EphemeralInboxFixture attributes mismatch")
+
+
+check("sadasend.playwright.EphemeralInboxFixture import and initialization", test_playwright_fixture_import)
+
+
 print("\n------------------------------------------------------")
 print(f"Results: \033[32m{passed} PASSED\033[0m | \033[31m{failed} FAILED\033[0m out of {passed + failed} checks")
 print("------------------------------------------------------\n")

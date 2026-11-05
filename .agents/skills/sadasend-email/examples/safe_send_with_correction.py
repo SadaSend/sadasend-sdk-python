@@ -100,8 +100,15 @@ def agent_email_workflow(target_recipient: str) -> Dict[str, Any]:
         print(f"❌ Dispatch failed: [{err.code}] {err.message}")
         return {"status": "failed", "error": err.message}
 
-    # 4. Step 3: Handle Normal Send vs Human Approval Queue
+    # 4. Step 3: Handle Normal Send vs Human Approval Queue & Security Holds
     if send_resp.get("status") == "pending_approval":
+        if send_resp.get("held") and send_resp.get("holdType") == "security":
+            print(f"🛡️ Volume Surge Security Hold triggered: {send_resp.get('holdReason')}")
+            return {
+                "status": "held_security_review",
+                "message_id": send_resp["id"],
+                "hold_reason": send_resp.get("holdReason"),
+            }
         print(f"🛡️ Message queued for HUMAN APPROVAL (ID: {send_resp['id']}).")
         return {"status": "held_for_approval", "message_id": send_resp["id"]}
 

@@ -49,6 +49,7 @@ from .webhooks import (
     parse_webhook,
     verify_webhook,
 )
+from .playwright import EphemeralInboxFixture
 
 __version__ = VERSION
 
@@ -62,4 +63,5 @@ __all__ = [
     "InvitationAlreadyPendingError", "InvalidPlanError",
     "RateLimitError", "ServerError", "ConnectionFailedError", "is_retryable", "to_error",
     "verify_webhook", "parse_webhook", "SIGNATURE_HEADER", "DEFAULT_TOLERANCE_SECONDS", "EVENT_TYPES",
+    "EphemeralInboxFixture",
 ]

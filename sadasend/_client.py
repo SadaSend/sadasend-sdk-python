@@ -59,7 +59,7 @@ from .errors import ConnectionFailedError, SadaSendError, is_retryable, to_error
 
 __all__ = ["SadaSend", "RetryPolicy", "VERSION", "DEFAULT_BASE_URL"]
 
-VERSION = "0.1.3"
+VERSION = "0.1.4"
 DEFAULT_BASE_URL = "https://api.sadasend.com"
 
 
@@ -213,10 +213,32 @@ class SadaSend:
         if hasattr(self, "inboxes"):
             setattr(self.inboxes, "create", getattr(self.inboxes, "ephemeral", None))
             setattr(self.inboxes, "create_ephemeral", getattr(self.inboxes, "ephemeral", None))
+            setattr(self.inboxes, "stream_url", lambda id_: f"{self._base_url}/inboxes/{id_}/stream")
+            setattr(self.inboxes, "streamUrl", getattr(self.inboxes, "stream_url", None))
         if hasattr(self, "testing"):
-            setattr(self.testing, "waitForCode", getattr(self.testing, "wait_for_code", None))
+            original_wait = getattr(self.testing, "wait_for_code", None)
+            def _normalized_wait_for_code(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+                res = original_wait(*args, **kwargs) if original_wait else {}
+                if isinstance(res, dict):
+                    if "otp" in res and "code" not in res:
+                        res["code"] = res["otp"]
+                    elif "code" in res and "otp" not in res:
+                        res["otp"] = res["code"]
+                return res
+            setattr(self.testing, "wait_for_code", _normalized_wait_for_code)
+            setattr(self.testing, "waitForCode", _normalized_wait_for_code)
             if hasattr(self, "testing_inboxes"):
                 setattr(self.testing, "inboxes", self.testing_inboxes)
+                original_code = getattr(self.testing_inboxes, "code", None)
+                def _normalized_code(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+                    res = original_code(*args, **kwargs) if original_code else {}
+                    if isinstance(res, dict):
+                        if "otp" in res and "code" not in res:
+                            res["code"] = res["otp"]
+                        elif "code" in res and "otp" not in res:
+                            res["otp"] = res["code"]
+                    return res
+                setattr(self.testing_inboxes, "code", _normalized_code)
         if hasattr(self, "inbound"):
             if hasattr(self, "inbound_routes"):
                 setattr(self.inbound, "routes", self.inbound_routes)

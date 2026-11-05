@@ -527,6 +527,7 @@ class TestResources(unittest.TestCase):
         self.assertEqual(calls[-1]["body"]["to"], "inb_1@auth.sadasend.com")
 
         # inboxes stream
+        self.assertEqual(client.inboxes.stream_url("inb_1"), "https://api.sadasend.com/inboxes/inb_1/stream")
         stream_res = client.inboxes.stream("inb_1")
         self.assertEqual(stream_res["stream"], "active")
         self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/inboxes/inb_1/stream")
@@ -541,8 +542,8 @@ class TestResources(unittest.TestCase):
     def test_testing_operations(self):
         opener, calls = make_mock_opener([
             (200, {"status": "ingested", "id": "tst_msg_1"}, {}),
-            (200, {"code": "123456"}, {}),
-            (200, {"code": "654321"}, {}),
+            (200, {"otp": "123456"}, {}),
+            (200, {"otp": "654321"}, {}),
             (200, {"message": {"id": "m1", "subject": "Test"}}, {}),
         ])
         client = SadaSend(api_key=self.api_key, opener=opener)
@@ -555,11 +556,13 @@ class TestResources(unittest.TestCase):
         # wait for code
         wfc = client.testing.wait_for_code(to="t@test.com", timeout_ms=5000)
         self.assertEqual(wfc["code"], "123456")
+        self.assertEqual(wfc["otp"], "123456")
         self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/wait-for-code")
 
         # testing inboxes code & latest
         c = client.testing_inboxes.code("t@test.com")
         self.assertEqual(c["code"], "654321")
+        self.assertEqual(c["otp"], "654321")
         self.assertEqual(calls[-1]["url"], "https://api.sadasend.com/testing/inboxes/t@test.com/code")
 
         latest = client.testing_inboxes.latest("t@test.com")

@@ -20,6 +20,7 @@ This example demonstrates the complete capabilities of SadaSend in Python:
 15. Multi-agent collision arbitration & cross-agent cooldowns
 16. Dynamic ephemeral inboxes & fast OTP code retrieval
 17. Context-safe inbound email parser with prompt injection scoring
+18. Playwright & Pytest drop-in E2E test fixtures (zero-polling push <150ms)
 
 Run this example:
   SADASEND_API_KEY="your_api_key" python3 examples/full_features.py
@@ -394,9 +395,23 @@ except SadaSendError as err:
 print("\n--- 16. Ephemeral Agent Inboxes & Fast OTP Retrieval ---")
 try:
     inbox_info = sadasend.inboxes.create(alias="agent-e2e-demo", ttl_seconds=300)
-    print(f"Provisioned ephemeral inbox: {inbox_info.get('inbox', {}).get('email')}")
+    inbox_data = inbox_info.get("inbox") or inbox_info
+    inbox_id = str(inbox_data.get("id") or "")
+    inbox_email = str(inbox_data.get("email") or "")
+    print(f"Provisioned ephemeral inbox: {inbox_email}")
+
+    if inbox_id:
+        stream_url = sadasend.inboxes.stream_url(inbox_id)
+        print(f"Real-time SSE stream URL: {stream_url}")
+
+    # Bidirectional OTP / code retrieval normalization
+    if inbox_email:
+        test_wait = sadasend.testing.wait_for_code(to=inbox_email, timeout_ms=1000)
+        # Both test_wait["code"] and test_wait["otp"] are accessible seamlessly
+        if test_wait.get("code"):
+            print(f"Extracted code: {test_wait['code']} (otp alias: {test_wait['otp']})")
 except SadaSendError as err:
-    print(f"Ephemeral inbox creation: {err}")
+    print(f"Ephemeral inbox operations: {err}")
 
 # ---------------------------------------------------------------------------
 # 17. Inbound Context-Safe Parser & Injection Scoring
@@ -411,6 +426,17 @@ try:
     print(f"Prompt injection risk: {parsed_inbound.get('security', {}).get('injectionRiskScore')}")
 except SadaSendError as err:
     print(f"Inbound parser: {err}")
+
+# ---------------------------------------------------------------------------
+# 18. Playwright & Pytest E2E Test Fixtures (sadasend.playwright)
+# ---------------------------------------------------------------------------
+print("\n--- 18. Playwright & Pytest E2E Test Fixtures ---")
+try:
+    from sadasend.playwright import EphemeralInboxFixture
+    print("Playwright test fixture available: EphemeralInboxFixture")
+    print("Auto-discovered drop-in pytest fixture: ephemeral_inbox, create_inbox")
+except ImportError as err:
+    print(f"Playwright fixture import: {err}")
 
 print("\n=== SadaSend Python SDK Demo Completed Successfully ===\n")
 

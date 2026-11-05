@@ -93,7 +93,10 @@ try:
     )
 
     if result["status"] == "pending_approval":
-        print(f"Email held safely in Human Approval Queue! ID: {result['id']}")
+        if result.get("held") and result.get("holdType") == "security":
+            print(f"Volume surge security hold triggered: {result.get('holdReason')}")
+        else:
+            print(f"Email held safely in Human Approval Queue! ID: {result['id']}")
     else:
         print(f"Email queued for immediate delivery! ID: {result['id']}")
 except SadaSendError as err:
@@ -170,6 +173,27 @@ if event is None:
     return {"error": "invalid_signature"}, 400
 
 print(f"Verified webhook event: {event['type']} for message {event['data'].get('messageId')}")
+```
+
+---
+
+## Ephemeral Inboxes & E2E Testing with Playwright (`sadasend.playwright`)
+
+For automated agents running end-to-end browser workflows (e.g. signup flows, 2FA validation):
+
+```python
+# In pytest-playwright test suites:
+# Drop-in fixture is auto-discovered via pytest11 entrypoint
+def test_agent_signup(page, ephemeral_inbox):
+    page.goto("https://app.example.com/signup")
+    page.fill("#email", ephemeral_inbox.email)
+    page.click("#submit")
+
+    # Reactive zero-polling push stream (<150ms latency)
+    otp = ephemeral_inbox.wait_for_otp() # or wait_for_code()
+    page.fill("#otp", otp)
+
+    # Inboxes are automatically cleaned up when the test finishes
 ```
 
 ---

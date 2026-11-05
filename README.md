@@ -4,7 +4,7 @@
 [![Python versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://pypi.org/project/sadasend/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/SadaSend/sadasend-sdk-python/blob/main/LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20(stdlib%20only)-success.svg)](https://pypi.org/project/sadasend/)
-[![Tests Passing](https://img.shields.io/badge/tests-84%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
+[![Tests Passing](https://img.shields.io/badge/tests-92%20passed-brightgreen.svg)](https://github.com/SadaSend/sadasend-sdk-python)
 [![Typing: Typed](https://img.shields.io/badge/typing-typed-blue.svg)](https://pypi.org/project/sadasend/)
 
 The official Python SDK for [SadaSend](https://sadasend.com?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=header) — high-throughput transactional email with unbypassable server-enforced guardrails designed for human software engineering teams and autonomous AI agents.
@@ -552,9 +552,10 @@ sadasend.emails.send(
 | `client.arbiter` | `stats()` | Cross-agent collision statistics and prevented contact loops. |
 | `client.arbiter_recipients` | `set_cooldown(...)`, `clear_cooldown(...)`, `status(...)` | Contact quiet periods and multi-agent coordination. |
 | `client.arbiter_tickets` | `create(...)`, `delete(...)` | Support-ticket delivery holds. |
-| `client.inboxes` | `ephemeral(...)`, `otp(...)`, `messages(...)`, `stream(...)` | Sub-10ms disposable 2FA agent inboxes and OTP extraction. |
-| `client.testing` | `inbound(...)`, `wait_for_code(...)` | E2E sandbox testing and test inbox ingestion. |
+| `client.inboxes` | `ephemeral(...)`, `otp(...)`, `messages(...)`, `stream(...)`, `stream_url(id)` | Sub-10ms disposable 2FA agent inboxes, OTP extraction, and SSE stream URLs. |
+| `client.testing` | `inbound(...)`, `wait_for_code(...)` | E2E sandbox testing and test inbox ingestion (bidirectional code/otp access). |
 | `client.testing_inboxes` | `code(...)`, `latest(...)` | Direct test inbox inspection. |
+| `sadasend.playwright` | `ephemeral_inbox`, `create_inbox` | Official Playwright & Pytest drop-in test fixtures with automatic teardown. |
 | `client.domains` | `list()` | List all sending domains registered on the account. |
 | `client.domains` | `records(id_)` | Retrieve SPF, DKIM, and DMARC DNS record requirements. |
 | `client.domains` | `verify(id_)` | Run a live internet DNS check to verify domain records. |
@@ -600,6 +601,37 @@ Add SadaSend directly to your agent config:
 ```
 
 Learn more in our [Model Context Protocol Guide](https://sadasend.com/docs/mcp?utm_source=python-sdk&utm_medium=readme&utm_campaign=python-sdk&utm_content=mcp_guide).
+
+---
+
+## Playwright & Pytest Drop-in Test Fixtures (`sadasend.playwright`)
+
+The modern, zero-polling replacement for Mailosaur (\$150/mo) and Mailtrap in Python. Test 2FA authentication, magic sign-in links, and email notifications in end-to-end browser tests (`pytest-playwright`) without manual boilerplate:
+
+```python
+# test_auth.py with pytest-playwright
+def test_2fa_signup(page, ephemeral_inbox):
+    page.goto("https://app.example.com/signup")
+    page.fill("#email", ephemeral_inbox.email)
+    page.click("#submit")
+
+    # Zero-polling reactive stream (<150ms push latency)
+    otp = ephemeral_inbox.wait_for_otp()
+    page.fill("#otp", otp)
+
+    assert page.is_visible("#dashboard")
+```
+
+### Pytest Fixture Features
+- **`ephemeral_inbox`**: Fresh, isolated mailbox automatically provisioned before each test.
+  - `otp = ephemeral_inbox.wait_for_otp(timeout_ms=30000)`: Captures 6-digit OTP code in real time (<150ms).
+  - `code = ephemeral_inbox.wait_for_code()`: Bidirectional alias for `wait_for_otp`.
+  - `link = ephemeral_inbox.wait_for_magic_link()`: Extracts authentication / verification URLs.
+  - `msg = ephemeral_inbox.wait_for_message()`: Returns full parsed message dictionary.
+  - `messages = ephemeral_inbox.get_messages()`: Lists all messages received during the test run.
+- **Automatic Lifecycle Teardown**: Inboxes are automatically deleted immediately after each test finishes, guaranteeing zero leftover mailboxes and zero quota waste.
+- **`create_inbox(alias=..., domain=...)`**: Factory fixture to instantiate additional isolated inboxes for multi-user scenarios (e.g. team invitations).
+- **Auto-Discovery via `pytest11`**: Automatically available when running `pytest` with `sadasend` installed (or via `from sadasend.playwright import ephemeral_inbox`).
 
 ---
 

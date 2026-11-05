@@ -307,6 +307,11 @@ otp_result = sadasend.inboxes.otp(
 )
 # otp_result: {"code": "849201", "message_id": "msg_otp_99"}
 
+# Real-time SSE stream URL for zero-polling reactive push (<150ms)
+stream_url = sadasend.inboxes.stream_url(inbox["id"])
+# or camelCase: sadasend.inboxes.streamUrl(inbox["id"])
+# -> "https://api.sadasend.com/inboxes/inb_agent_xyz/stream"
+
 # Retrieve received emails in ephemeral inbox
 msgs = sadasend.inboxes.messages(inbox["id"])
 
@@ -328,11 +333,13 @@ sadasend.testing.inbound(
 )
 
 # Wait for 2FA / verification code with timeout (also available via sadasend.testing.wait_for_code)
+# Bidirectional normalization: both code_data["code"] and code_data["otp"] are guaranteed
 code_data = sadasend.testing.waitForCode(
     to="qa-agent@sandbox.sadasend.dev",
     timeout_ms=15000,
 )
-# code_data: {"code": "994821", "found": True}
+# code_data: {"code": "994821", "otp": "994821", "found": True}
+extracted_code = code_data["code"]  # or code_data["otp"]
 
 # Direct test inboxes inspection (also available via sadasend.testing_inboxes)
 latest_email = sadasend.testing.inboxes.latest("qa-agent@sandbox.sadasend.dev")
@@ -353,6 +360,34 @@ team = sadasend.team.get()
 
 # List support tickets and conversations
 tickets = sadasend.support_tickets.list()
+```
+
+---
+
+## 15. Playwright & Pytest E2E Test Fixtures (`sadasend.playwright`)
+
+```python
+# Drop-in pytest fixture for browser testing (auto-discovered via pytest11 entrypoint)
+from sadasend.playwright import ephemeral_inbox, create_inbox
+
+def test_signup_auth(page, ephemeral_inbox):
+    # 1. Provisioned isolated mailbox
+    page.goto("https://app.example.com/signup")
+    page.fill("#email", ephemeral_inbox.email)
+    page.click("#submit")
+
+    # 2. Zero-polling reactive stream (<150ms push latency)
+    otp = ephemeral_inbox.wait_for_otp() # or wait_for_code()
+    page.fill("#otp", otp)
+
+    # 3. Or extract magic link
+    link = ephemeral_inbox.wait_for_magic_link()
+
+    # 4. Or inspect raw incoming message
+    msg = ephemeral_inbox.wait_for_message()
+    all_msgs = ephemeral_inbox.get_messages()
+
+    # Inboxes are automatically deleted when the test ends
 ```
 
 ---

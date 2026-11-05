@@ -5,15 +5,25 @@ All notable changes to the [sadasend](https://sadasend.com?utm_source=python-sdk
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.3] - 2026-11-05
+## [0.1.4] - 2026-11-06
 
 ### Added
+- **Official Playwright & Pytest Drop-in Test Fixtures (`sadasend.playwright`)**:
+  - Implemented drop-in pytest fixtures (`ephemeral_inbox` and `create_inbox`) auto-discovered via `pytest11` entrypoint or direct import (`from sadasend.playwright import ephemeral_inbox`).
+  - Added `EphemeralInboxFixture` featuring zero-polling reactive SSE streaming push (<150ms latency) via `wait_for_otp()`, `wait_for_code()`, `wait_for_magic_link()`, `wait_for_message()`, and `get_messages()`.
+  - Automatic test teardown: all ephemeral test inboxes created during test execution are automatically deleted when the test ends, guaranteeing zero leftover mailboxes and zero quota waste.
+  - Added camelCase aliases (`ephemeralInbox`, `createInbox`, `waitForOtp`, `waitForCode`, etc.) for seamless cross-language parity.
+- **`client.testing.wait_for_code` & `testing_inboxes.code` Field Aliasing**:
+  - Added response normalization mapping both `code` and `otp` bidirectionally (`res["code"]` and `res["otp"]`).
+  - Guarantees client scripts accessing either `res["code"]` or `res["otp"]` function seamlessly without KeyError.
+- **`client.inboxes.stream_url(id)` & `streamUrl(id)`**:
+  - Added formatted SSE stream URL helper (`client.inboxes.stream_url(id)` and camelCase alias `streamUrl`).
 - **Volume Surge Anomaly Hold & Security Hold Reason**:
   - The adaptive volume surge detector holds anomalous send spikes exceeding the dynamic safety threshold (e.g. 3x 7-day baseline) for human operator review with `status="pending_approval"`, `held=True`, `holdType="security"`, and a descriptive `holdReason`.
   - Added test case `test_send_and_get_preserve_volume_surge_security_hold` in `test/test_provenance.py` asserting that `held`, `holdType`, and `holdReason` are faithfully returned and parsed on `emails.send` and `emails.get`.
 - **Resource Aliases & Packaging**:
   - Verified zero drift against `openapi.json` across 66 operations and 24 resources.
-  - Bumped version to `0.1.3` across package metadata, PEP 561 typing markers, and wheel distribution bundles.
+  - Bumped version to `0.1.4` across package metadata, PEP 561 typing markers, and wheel distribution bundles.
 
 ## [0.1.2] - 2026-10-30
 

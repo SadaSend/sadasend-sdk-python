@@ -6,8 +6,8 @@ import sadasend
 
 class TestPackaging(unittest.TestCase):
     def test_version_matches(self):
-        self.assertEqual(sadasend.__version__, "0.1.3")
-        self.assertEqual(sadasend.VERSION, "0.1.3")
+        self.assertEqual(sadasend.__version__, "0.1.4")
+        self.assertEqual(sadasend.VERSION, "0.1.4")
 
     def test_all_exports_exist(self):
         for name in sadasend.__all__:
